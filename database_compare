@@ -1,0 +1,97 @@
+import pandas as pd
+import mysql.connector
+
+def connect_to_database(db_config):
+    """Connects to a MySQL database using provided configuration."""
+    try:
+        conn = mysql.connector.connect(**db_config)
+        return conn
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        return None
+
+def fetch_data(conn, table_name):
+    """Fetches data from a table in the connected MySQL database."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name}")
+        data = cursor.fetchall()
+        df = pd.DataFrame(data, columns=[col[0] for col in cursor.description])  # Extract column names
+        return df
+    except Exception as e:
+        print(f"Error fetching data from table '{table_name}': {e}")
+        return None
+
+def compare_dataframes(df1, df2):
+    """Compares two DataFrames, identifying mismatched rows and columns."""
+    try:
+        # Check for mismatched row counts
+        if len(df1) != len(df2):
+            print("DataFrames have different row counts.")
+
+        # Check for mismatched columns (names and data types)
+        mismatched_cols = set(df1.columns) ^ set(df2.columns)
+        if mismatched_cols:
+            print(f"Mismatched columns: {', '.join(mismatched_cols)}")
+
+        # Check for mismatched data within columns with matching names and data types
+        for col in df1.select_dtypes(include=[object]):  # Handle potential column type differences
+            if col.name in df2:
+                mismatches = df1[col] != df2[col]
+                if mismatches.any():
+                    print(f"Mismatched data in column '{col.name}':")
+                    print(df1[mismatches])  # Show rows with mismatched values
+                    break  # Stop after finding mismatches to avoid excessive output
+
+        # Optionally handle other data type comparisons (e.g., numerical comparisons)
+        # ...
+
+    except Exception as e:
+        print(f"Error comparing DataFrames: {e}")
+
+def main():
+    """
+    Connects to two MySQL databases, fetches data, compares DataFrames, and prints results.
+
+    Replace the following with your actual database connection details:
+      - db1_config (dictionary containing connection parameters for database 1)
+      - db2_config (dictionary containing connection parameters for database 2)
+      - table1_name (name of the table in database 1)
+      - table2_name (name of the table in database 2)
+    """
+
+    db1_config = {
+        "host": "...",
+        "database": "...",
+        "user": "...",
+        "password": "..."
+    }
+    db2_config = {
+        "host": "...",
+        "database": "...",
+        "user": "...",
+        "password": "..."
+    }
+    table1_name = "your_table_1"
+    table2_name = "your_table_2"
+
+    conn1 = connect_to_database(db1_config)
+    conn2 = connect_to_database(db2_config)
+
+    if conn1 and conn2:
+        df1 = fetch_data(conn1, table1_name)
+        df2 = fetch_data(conn2, table2_name)
+
+        if df1 is not None and df2 is not None:
+            compare_dataframes(df1, df2)
+        else:
+            print("Error fetching data from one or both tables.")
+
+    # Close database connections
+    if conn1:
+        conn1.close()
+    if conn2:
+        conn2.close()
+
+if __name__ == "__main__":
+    main()
