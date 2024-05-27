@@ -43,6 +43,15 @@ def compare_dataframes(df1, df2):
                     print(df1[mismatches])  # Show rows with mismatched values
                     break  # Stop after finding mismatches to avoid excessive output
 
+        #comparing the data to check if both tables are having same data if columns and length are same
+        df=pd.concat([df1,df2])
+        df.drop_duplicates(keep=False)        
+        if df.empty:
+            print('Tables match')
+        else:
+            print('Data difference in dataframe',df)
+
+        
         # Optionally handle other data type comparisons (e.g., numerical comparisons)
         # ...
 
