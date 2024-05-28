@@ -1,106 +1,154 @@
-import pandas as pd
-import mysql.connector
+import pymysql
+from concurrent.futures import ThreadPoolExecutor
 
-def connect_to_database(db_config):
-    """Connects to a MySQL database using provided configuration."""
-    try:
-        conn = mysql.connector.connect(**db_config)
-        return conn
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
-        return None
+class DatabaseComparator:
+    def __init__(self, host, user, password, db1, db2):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.db1 = db1
+        self.db2 = db2
 
-def fetch_data(conn, table_name):
-    """Fetches data from a table in the connected MySQL database."""
-    try:
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
-        data = cursor.fetchall()
-        df = pd.DataFrame(data, columns=[col[0] for col in cursor.description])  # Extract column names
-        return df
-    except Exception as e:
-        print(f"Error fetching data from table '{table_name}': {e}")
-        return None
+    def connect_to_database(self, db_name):
+        return pymysql.connect(
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=db_name
+        )
 
-def compare_dataframes(df1, df2):
-    """Compares two DataFrames, identifying mismatched rows and columns."""
-    try:
-        # Check for mismatched row counts
-        if len(df1) != len(df2):
-            print("DataFrames have different row counts.")
+    def fetch_data(self, conn, table_name, offset, limit):
+        with conn.cursor() as cursor:
+            cursor.execute(f"SELECT * FROM {table_name} LIMIT {limit} OFFSET {offset}")
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+        return rows, columns
 
-        # Check for mismatched columns (names and data types)
-        mismatched_cols = set(df1.columns) ^ set(df2.columns)
-        if mismatched_cols:
-            print(f"Mismatched columns: {', '.join(mismatched_cols)}")
+    def compare_data(self, rows1, rows2, columns):
+        mismatched_count = 0
+        blank_count = 0
+        mismatched_details = []
+        blank_details = []
 
-        # Check for mismatched data within columns with matching names and data types
-        for col in df1.select_dtypes(include=[object]):  # Handle potential column type differences
-            if col.name in df2:
-                mismatches = df1[col] != df2[col]
-                if mismatches.any():
-                    print(f"Mismatched data in column '{col.name}':")
-                    print(df1[mismatches])  # Show rows with mismatched values
-                    break  # Stop after finding mismatches to avoid excessive output
+        for idx, (row1, row2) in enumerate(zip(rows1, rows2)):
+            for col_idx, (col1, col2) in enumerate(zip(row1, row2)):
+                column_name = columns[col_idx]
+                if col1 != col2:
+                    mismatched_count += 1
+                    mismatched_details.append((idx, column_name, col1, col2))
+                if col1 is None or col1 == '' or col2 is None or col2 == '':
+                    blank_count += 1
+                    blank_details.append((idx, column_name, col1, col2))
 
-        #comparing the data to check if both tables are having same data if columns and length are same
-        df=pd.concat([df1,df2])
-        df.drop_duplicates(keep=False)        
-        if df.empty:
-            print('Tables match')
-        else:
-            print('Data difference in dataframe',df)
+        return mismatched_count, blank_count, mismatched_details, blank_details
 
-        
-        # Optionally handle other data type comparisons (e.g., numerical comparisons)
-        # ...
+    def find_duplicates(self, rows, columns):
+        row_map = {}
+        duplicates = []
 
-    except Exception as e:
-        print(f"Error comparing DataFrames: {e}")
+        for idx, row in enumerate(rows):
+            row_tuple = tuple(row)
+            if row_tuple in row_map:
+                duplicates.append((row_map[row_tuple], idx, row))
+            else:
+                row_map[row_tuple] = idx
 
-def main():
-    """
-    Connects to two MySQL databases, fetches data, compares DataFrames, and prints results.
+        return duplicates
 
-    Replace the following with your actual database connection details:
-      - db1_config (dictionary containing connection parameters for database 1)
-      - db2_config (dictionary containing connection parameters for database 2)
-      - table1_name (name of the table in database 1)
-      - table2_name (name of the table in database 2)
-    """
+    def process_chunk(self, start_index, chunk_size, table_name1, table_name2):
+        conn1 = self.connect_to_database(self.db1)
+        conn2 = self.connect_to_database(self.db2)
 
-    db1_config = {
-        "host": "...",
-        "database": "...",
-        "user": "...",
-        "password": "..."
-    }
-    db2_config = {
-        "host": "...",
-        "database": "...",
-        "user": "...",
-        "password": "..."
-    }
-    table1_name = "your_table_1"
-    table2_name = "your_table_2"
+        data1, columns1 = self.fetch_data(conn1, table_name1, start_index, chunk_size)
+        data2, columns2 = self.fetch_data(conn2, table_name2, start_index, chunk_size)
 
-    conn1 = connect_to_database(db1_config)
-    conn2 = connect_to_database(db2_config)
+        if columns1 != columns2:
+            raise ValueError("The columns in the two tables do not match.")
 
-    if conn1 and conn2:
-        df1 = fetch_data(conn1, table1_name)
-        df2 = fetch_data(conn2, table2_name)
+        mismatched_count, blank_count, mismatched_details, blank_details = self.compare_data(data1, data2, columns1)
+        duplicates1 = self.find_duplicates(data1, columns1)
+        duplicates2 = self.find_duplicates(data2, columns2)
 
-        if df1 is not None and df2 is not None:
-            compare_dataframes(df1, df2)
-        else:
-            print("Error fetching data from one or both tables.")
-
-    # Close database connections
-    if conn1:
         conn1.close()
-    if conn2:
         conn2.close()
 
-if __name__ == "__main__":
-    main()
+        return mismatched_count, blank_count, mismatched_details, blank_details, duplicates1, duplicates2
+
+    def compare_databases(self, table_name1, table_name2, total_rows, chunk_size=100):
+        mismatched_total = 0
+        blank_total = 0
+        all_mismatched_details = []
+        all_blank_details = []
+        all_duplicates1 = []
+        all_duplicates2 = []
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [
+                executor.submit(self.process_chunk, i, chunk_size, table_name1, table_name2)
+                for i in range(0, total_rows, chunk_size)
+            ]
+
+            for future in futures:
+                mismatched_count, blank_count, mismatched_details, blank_details, duplicates1, duplicates2 = future.result()
+                mismatched_total += mismatched_count
+                blank_total += blank_count
+                all_mismatched_details.extend(mismatched_details)
+                all_blank_details.extend(blank_details)
+                all_duplicates1.extend(duplicates1)
+                all_duplicates2.extend(duplicates2)
+
+        print(f"Total mismatched data count: {mismatched_total}")
+        print(f"Total blank data count: {blank_total}")
+
+        if all_mismatched_details:
+            print("Mismatched Details:")
+            for detail in all_mismatched_details:
+                row_idx, column_name, col1, col2 = detail
+                print(f"Row: {row_idx}, Column: {column_name}, Database1: {col1}, Database2: {col2}")
+
+        if all_blank_details:
+            print("Blank Details:")
+            for detail in all_blank_details:
+                row_idx, column_name, col1, col2 = detail
+                print(f"Row: {row_idx}, Column: {column_name}, Database1: {col1}, Database2: {col2}")
+
+        if all_duplicates1:
+            print("Duplicates in Database1:")
+            for idx1, idx2, row in all_duplicates1:
+                print(f"Row {idx1} and Row {idx2} are duplicates: {row}")
+
+        if all_duplicates2:
+            print("Duplicates in Database2:")
+            for idx1, idx2, row in all_duplicates2:
+                print(f"Row {idx1} and Row {idx2} are duplicates: {row}")
+
+        return mismatched_total, blank_total, all_mismatched_details, all_blank_details, all_duplicates1, all_duplicates2
+
+
+
+
+*** Settings ***
+Library    DatabaseComparator.py    your_host    your_username    your_password    database1    database2
+
+*** Test Cases ***
+Compare Databases
+    [Documentation]    Compare two databases and print mismatches, blanks, and duplicates.
+    ${mismatched_total}    ${blank_total}    ${mismatched_details}    ${blank_details}    ${duplicates1}    ${duplicates2} =    Compare Databases    table1    table2    1000
+    Log    Total mismatched data count: ${mismatched_total}
+    Log    Total blank data count: ${blank_total}
+    
+    : FOR    ${detail}    IN    @{mismatched_details}
+    \    Log    Mismatched Detail: Row ${detail[0]}, Column ${detail[1]}, Database1: ${detail[2]}, Database2: ${detail[3]}
+    : END
+
+    : FOR    ${detail}    IN    @{blank_details}
+    \    Log    Blank Detail: Row ${detail[0]}, Column ${detail[1]}, Database1: ${detail[2]}, Database2: ${detail[3]}
+    : END
+
+    : FOR    ${duplicate}    IN    @{duplicates1}
+    \    Log    Duplicate in Database1: Row ${duplicate[0]} and Row ${duplicate[1]} are duplicates: ${duplicate[2]}
+    : END
+
+    : FOR    ${duplicate}    IN    @{duplicates2}
+    \    Log    Duplicate in Database2: Row ${duplicate[0]} and Row ${duplicate[1]} are duplicates: ${duplicate[2]}
+    : END
