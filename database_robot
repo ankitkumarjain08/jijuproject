@@ -1,0 +1,70 @@
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
+
+class DataComparison:
+    def __init__(self, file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size=500):
+        self.file_path_1 = file_path_1
+        self.file_path_2 = file_path_2
+        self.sheet_name_1 = sheet_name_1
+        self.sheet_name_2 = sheet_name_2
+        self.chunk_size = chunk_size
+
+    def fetch_data_chunk(self, file_path, sheet_name, offset, limit):
+        df = pd.read_excel(file_path, sheet_name=sheet_name, skiprows=offset, nrows=limit)
+        return df.values.tolist()
+
+    def find_unmatched_values(self, chunk_1, chunk_2):
+        unmatched_values = []
+        for row in chunk_1:
+            if row not in chunk_2:
+                unmatched_values.append(row)
+        return unmatched_values
+
+    def compare_data(self):
+        total_rows_table_1 = len(pd.read_excel(self.file_path_1, sheet_name=self.sheet_name_1))
+        total_rows_table_2 = len(pd.read_excel(self.file_path_2, sheet_name=self.sheet_name_2))
+
+        unmatched_values = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for offset in range(0, max(total_rows_table_1, total_rows_table_2), self.chunk_size):
+                future_1 = executor.submit(self.fetch_data_chunk, self.file_path_1, self.sheet_name_1, offset, self.chunk_size)
+                future_2 = executor.submit(self.fetch_data_chunk, self.file_path_2, self.sheet_name_2, offset, self.chunk_size)
+                chunk_1 = future_1.result()
+                chunk_2 = future_2.result()
+                futures.append((chunk_1, chunk_2))
+
+            for chunk_1, chunk_2 in futures:
+                unmatched_values.extend(self.find_unmatched_values(chunk_1, chunk_2))
+
+        return unmatched_values
+
+    # Robot Framework keywords
+    def create_data_comparison(self, file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size=500):
+        return DataComparison(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size)
+
+    def compare_data(self, data_comparison_instance):
+        return data_comparison_instance.compare_data()
+
+
+
+
+
+
+
+          *** Settings ***
+Library         data_comparison.py
+
+*** Variables ***
+${FILE_PATH_1}     path_to_excel_file_1.xlsx
+${FILE_PATH_2}     path_to_excel_file_2.xlsx
+${SHEET_NAME_1}    Sheet1
+${SHEET_NAME_2}    Sheet1
+${CHUNK_SIZE}      500
+
+*** Test Cases ***
+Compare Data From Excel Files
+    ${data_comparison}=    Create Data Comparison    ${FILE_PATH_1}    ${FILE_PATH_2}    ${SHEET_NAME_1}    ${SHEET_NAME_2}    ${CHUNK_SIZE}
+    ${unmatched_values}=   Compare Data    ${data_comparison}
+    Log Many    ${unmatched_values}
+    Log         Total Unmatched Count: ${len(${unmatched_values})}
