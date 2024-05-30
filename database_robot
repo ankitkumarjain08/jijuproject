@@ -38,3 +38,20 @@ def compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_siz
 def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size):
     unmatched_values_1, unmatched_values_2 = compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size)
     return {'unmatched_in_table_1': unmatched_values_1, 'unmatched_in_table_2': unmatched_values_2}
+
+
+
+*** Settings ***
+Library    ExcelComparisonLibrary.py
+
+*** Test Cases ***
+Compare Two Excel Files
+    [Documentation]    Compare two Excel files and list unmatched values, along with a summary of the execution.
+    [Tags]    Compare
+    ${result}    Compare Excel Files    file1.xlsx    file2.xlsx    Sheet1    Sheet2    50
+    Log    Unmatched rows in Table 1: ${result['unmatched_in_table_1']}
+    Log    Unmatched rows in Table 2: ${result['unmatched_in_table_2']}
+    Log    Total Rows in Table 1: ${result['summary']['total_rows_table_1']}
+    Log    Total Rows in Table 2: ${result['summary']['total_rows_table_2']}
+    Log    Total Rows Compared: ${result['summary']['total_rows_compared']}
+    Log    Total Unmatched Rows: ${result['summary']['total_unmatched_rows']}
