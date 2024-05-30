@@ -42,19 +42,19 @@ def compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_siz
 
     return unmatched_values_1, unmatched_values_2, summary
 
-    def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size):
-        unmatched_values_1, unmatched_values_2, summary = compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size)
-        return {
-            'unmatched_in_table_1': unmatched_values_1,
-            'unmatched_in_table_2': unmatched_values_2,
-            'summary': summary
-        }
+def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size):
+    unmatched_values_1, unmatched_values_2, summary = compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size)
+    return {
+        'unmatched_in_table_1': unmatched_values_1,
+        'unmatched_in_table_2': unmatched_values_2,
+        'summary': summary
+    }
 
 
 
 
 *** Settings ***
-Library    ExcelComparisonLibrary.py
+Library    excel_comparison.py
 
 *** Test Cases ***
 Compare Two Excel Files
