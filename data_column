@@ -25,11 +25,19 @@ def find_unmatched_values(chunk_1, chunk_2, offset):
 
     return unmatched_in_chunk_1, unmatched_in_chunk_2
 
+def compare_column_headers(df1, df2):
+    columns_table_1 = set(df1.columns)
+    columns_table_2 = set(df2.columns)
+    mismatched_columns = columns_table_1.symmetric_difference(columns_table_2)
+    return list(mismatched_columns)
+
 def compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_size):
     chunk_size = int(chunk_size)
     df1 = pd.read_excel(file_path_1, sheet_name=sheet_name_1)
     df2 = pd.read_excel(file_path_2, sheet_name=sheet_name_2)
 
+    column_mismatches = compare_column_headers(df1, df2)
+    
     total_rows_table_1 = len(df1)
     total_rows_table_2 = len(df2)
 
@@ -57,7 +65,8 @@ def compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_siz
         'total_rows_table_1': total_rows_table_1,
         'total_rows_table_2': total_rows_table_2,
         'total_rows_compared': min(total_rows_table_1, total_rows_table_2),
-        'total_unmatched_rows': total_unmatched
+        'total_unmatched_rows': total_unmatched,
+        'column_mismatches': column_mismatches
     }
 
     return unmatched_values_1, unmatched_values_2, summary
@@ -69,6 +78,7 @@ def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, ch
         'unmatched_in_table_2': unmatched_values_2,
         'summary': summary
     }
+
 
 
 *** Settings ***
