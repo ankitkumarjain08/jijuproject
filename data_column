@@ -14,12 +14,14 @@ def find_unmatched_values(chunk_1, chunk_2, offset):
     for i, row in chunk_1.iterrows():
         if row.values.tolist() not in chunk_2_values:
             mismatched_columns = [chunk_1.columns[j] for j in range(len(row)) if j < len(chunk_2.columns) and row[j] != chunk_2.iloc[i, j]]
-            unmatched_in_chunk_1.append((offset + i, row.tolist(), mismatched_columns))
+            if mismatched_columns:
+                unmatched_in_chunk_1.append((offset + i, row.tolist(), mismatched_columns))
 
     for i, row in chunk_2.iterrows():
         if row.values.tolist() not in chunk_1.values.tolist():
             mismatched_columns = [chunk_2.columns[j] for j in range(len(row)) if j < len(chunk_1.columns) and row[j] != chunk_1.iloc[i, j]]
-            unmatched_in_chunk_2.append((offset + i, row.tolist(), mismatched_columns))
+            if mismatched_columns:
+                unmatched_in_chunk_2.append((offset + i, row.tolist(), mismatched_columns))
 
     return unmatched_in_chunk_1, unmatched_in_chunk_2
 
@@ -66,18 +68,6 @@ def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, ch
         'summary': summary
     }
 
-
-
-
-*** Settings ***
-Library    ExcelComparisonLibrary.py
-
-*** Variables ***
-${FILE_PATH_1}    path/to/your/first/excel/file.xlsx
-${FILE_PATH_2}    path/to/your/second/excel/file.xlsx
-${SHEET_NAME_1}   Sheet1
-${SHEET_NAME_2}   Sheet2
-${CHUNK_SIZE}     1000
 
 *** Test Cases ***
 Compare Excel Files
