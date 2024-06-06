@@ -46,9 +46,11 @@ def compare_data(file_path_1, file_path_2, sheet_name_1, sheet_name_2, chunk_siz
         for future_1, future_2, offset in futures:
             chunk_1 = future_1.result()
             chunk_2 = future_2.result()
-            unmatched_in_chunk_1, unmatched_in_chunk_2 = find_unmatched_values(chunk_1, chunk_2, offset)
-            unmatched_values_1.extend(unmatched_in_chunk_1)
-            unmatched_values_2.extend(unmatched_in_chunk_2)
+            
+            if not chunk_1.empty and not chunk_2.empty:
+                unmatched_in_chunk_1, unmatched_in_chunk_2 = find_unmatched_values(chunk_1, chunk_2, offset)
+                unmatched_values_1.extend(unmatched_in_chunk_1)
+                unmatched_values_2.extend(unmatched_in_chunk_2)
 
     total_unmatched = len(unmatched_values_1) + len(unmatched_values_2)
     summary = {
@@ -68,6 +70,16 @@ def compare_excel_files(file_path_1, file_path_2, sheet_name_1, sheet_name_2, ch
         'summary': summary
     }
 
+
+*** Settings ***
+Library    ExcelComparisonLibrary.py
+
+*** Variables ***
+${FILE_PATH_1}    path/to/your/first/excel/file.xlsx
+${FILE_PATH_2}    path/to/your/second/excel/file.xlsx
+${SHEET_NAME_1}   Sheet1
+${SHEET_NAME_2}   Sheet2
+${CHUNK_SIZE}     1000
 
 *** Test Cases ***
 Compare Excel Files
