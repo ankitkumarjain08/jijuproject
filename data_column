@@ -13,13 +13,13 @@ def find_unmatched_values(chunk_1, chunk_2, offset):
 
     for i, row in chunk_1.iterrows():
         if row.values.tolist() not in chunk_2_values:
-            mismatched_columns = [chunk_1.columns[j] for j in range(len(row)) if j < len(chunk_2.columns) and row[j] != chunk_2.iloc[i, j]]
+            mismatched_columns = [chunk_1.columns[j] for j in range(len(row)) if j < len(chunk_2.columns) and row.iloc[j] != chunk_2.iloc[i, j]]
             if mismatched_columns:
                 unmatched_in_chunk_1.append((offset + i, row.tolist(), mismatched_columns))
 
     for i, row in chunk_2.iterrows():
         if row.values.tolist() not in chunk_1.values.tolist():
-            mismatched_columns = [chunk_2.columns[j] for j in range(len(row)) if j < len(chunk_1.columns) and row[j] != chunk_1.iloc[i, j]]
+            mismatched_columns = [chunk_2.columns[j] for j in range(len(row)) if j < len(chunk_1.columns) and row.iloc[j] != chunk_1.iloc[i, j]]
             if mismatched_columns:
                 unmatched_in_chunk_2.append((offset + i, row.tolist(), mismatched_columns))
 
