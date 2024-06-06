@@ -92,8 +92,6 @@ ${SHEET_NAME_1}   Sheet1
 ${SHEET_NAME_2}   Sheet2
 ${CHUNK_SIZE}     1000
 
-
-
 *** Test Cases ***
 Compare Excel Files
     ${result}    Compare Excel Files    ${FILE_PATH_1}    ${FILE_PATH_2}    ${SHEET_NAME_1}    ${SHEET_NAME_2}    ${CHUNK_SIZE}
@@ -102,7 +100,7 @@ Compare Excel Files
     Log    Summary: ${result['summary']}
     Display Unmatched Details    ${result['unmatched_in_table_1']}    Table 1
     Display Unmatched Details    ${result['unmatched_in_table_2']}    Table 2
-    Display Column Mismatches    ${result['summary']['column_mismatches']}
+    Display Column Mismatches    ${result['summary']['column_mismatches']}    ${result['summary']['total_column_mismatches']}
 
 *** Keywords ***
 Display Unmatched Details
@@ -112,6 +110,10 @@ Display Unmatched Details
     END
 
 Display Column Mismatches
-    [Arguments]    ${column_mismatches}
+    [Arguments]    ${column_mismatches}    ${total_mismatches}
     Log    Mismatched Columns: ${column_mismatches}
+    Log    Total Number of Column Mismatches: ${total_mismatches}
+
+
+
 
