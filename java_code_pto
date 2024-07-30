@@ -1,0 +1,60 @@
+public class PTXDetailsUpdater {
+
+    public void changePTXDetailsStatus(String ptxID, String ptxControl, String status, String commentNotes) {
+        String comments = "//span[text()='" + status + "']";
+        String xpathExpression = "//input[@id='ptxIdInput']";
+
+        try {
+            if (getText(By.xpath(xpathExpression)).equalsIgnoreCase(ptxID)) {
+                switch (ptxControl.toUpperCase()) {
+                    case "REGRESSION TEST CONTROL":
+                        clickElement(By.xpath("//label[normalize-space()='Regression Test Control']"));
+                        clickElement(By.xpath(comments));
+                        setInputValue(By.xpath("//textarea[@id='regTestRemarkInput']"), commentNotes);
+                        break;
+
+                    case "PERFORMANCE TEST CONTROL":
+                        clickElement(By.xpath("//label[normalize-space()='Performance Test Control']"));
+                        clickElement(By.xpath(comments));
+                        setInputValue(By.xpath("//textarea[@id='loadPerfTestRemarkInput']"), commentNotes);
+                        break;
+
+                    case "BUSINESS/UAT TEST CONTROL":
+                        clickElement(By.xpath("//label[normalize-space()='Business/UAT Test Control']"));
+                        clickElement(By.xpath(comments));
+                        setInputValue(By.xpath("//textarea[@id='uatTestRemarkInput']"), commentNotes);
+                        break;
+
+                    // Add more cases as needed
+                    default:
+                        System.out.println("Invalid test control type: " + ptxControl);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getText(By by) {
+        // Implement the method to return text from the web element located by 'by'
+        // Example: return driver.findElement(by).getText();
+        return ""; // Placeholder return statement
+    }
+
+    private void clickElement(By by) {
+        // Implement the method to click the web element located by 'by'
+        // Example: driver.findElement(by).click();
+    }
+
+    private void setInputValue(By by, String value) {
+        // Implement the method to set input value of the web element located by 'by'
+        // Example: driver.findElement(by).sendKeys(value);
+    }
+
+    public static void main(String[] args) {
+        PTXDetailsUpdater updater = new PTXDetailsUpdater();
+        updater.changePTXDetailsStatus("PTX1234", "REGRESSION TEST CONTROL", "Pass", "Test passed successfully.");
+        updater.changePTXDetailsStatus("PTX1234", "PERFORMANCE TEST CONTROL", "Fail", "Performance test failed.");
+        updater.changePTXDetailsStatus("PTX1234", "BUSINESS/UAT TEST CONTROL", "Exception Raised", "Exception during UAT.");
+    }
+}
