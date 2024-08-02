@@ -58,3 +58,87 @@ public class PTXDetailsUpdater {
         updater.changePTXDetailsStatus("PTX1234", "BUSINESS/UAT TEST CONTROL", "Exception Raised", "Exception during UAT.");
     }
 }
+
+
+
+
+
+
+
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class DateEntry {
+
+    public static void enterDate(WebDriver driver, String xpath, int date, String month, int year) {
+        // Convert month name to month number
+        String monthNumber;
+        switch (month.toLowerCase()) {
+            case "january":
+                monthNumber = "01";
+                break;
+            case "february":
+                monthNumber = "02";
+                break;
+            case "march":
+                monthNumber = "03";
+                break;
+            case "april":
+                monthNumber = "04";
+                break;
+            case "may":
+                monthNumber = "05";
+                break;
+            case "june":
+                monthNumber = "06";
+                break;
+            case "july":
+                monthNumber = "07";
+                break;
+            case "august":
+                monthNumber = "08";
+                break;
+            case "september":
+                monthNumber = "09";
+                break;
+            case "october":
+                monthNumber = "10";
+                break;
+            case "november":
+                monthNumber = "11";
+                break;
+            case "december":
+                monthNumber = "12";
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid month: " + month);
+        }
+
+        // Format date as MM/DD/YYYY
+        String formattedDate = String.format("%02d/%02d/%04d", Integer.parseInt(monthNumber), date, year);
+
+        // Find the text box using its XPath and enter the date
+        WebElement dateTextBox = driver.findElement(By.xpath(xpath));
+        dateTextBox.clear();
+        dateTextBox.sendKeys(formattedDate);
+    }
+
+    public static void main(String[] args) {
+        // Set up WebDriver (assume you have the chromedriver.exe in your system PATH)
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+        WebDriver driver = new ChromeDriver();
+
+        // Open your webpage
+        driver.get("http://your-webpage-url.com");
+
+        // Enter the date into the text box
+        enterDate(driver, "//input[@id='dateTextBox']", 8, "june", 2024);
+
+        // Close the driver
+        driver.quit();
+    }
+}
+
