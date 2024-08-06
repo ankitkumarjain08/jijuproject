@@ -142,3 +142,47 @@ public class DateEntry {
     }
 }
 
+
+
+
+
+
+public void changePtoDetailStatus(String ptoId, String ptoTest, String updateStatus, String workNotes) {
+    String updatedStatus = "//span[text()='" + updateStatus + "']";
+    try {
+        if (isDisplayed(By.xpath(PtoEditSaveButton))) {
+            // Split the ptoTest string by comma and trim each value
+            String[] ptoTests = ptoTest.split(",");
+            for (String test : ptoTests) {
+                switch (test.trim().toUpperCase()) {
+                    case "SMOKE TEST CONTROL":
+                        clickElement(PtoEditPtoSmokeTestControlDropdown);
+                        clickElement(updatedStatus);
+                        setInputValue(PtoEditSmokeTestRemarkNotes, workNotes);
+                        break;
+                    case "REGRESSION TEST CONTROL":
+                        clickElement(PtoEditRegressionTestControlDropdown);
+                        clickElement(updatedStatus);
+                        setInputValue(PtoEditRegressionRemarkNotes, workNotes);
+                        break;
+                    case "LOAD PERFORMANCE TEST":
+                        clickElement(PtoEditLoadPerformanceDropdown);
+                        clickElement(updatedStatus);
+                        setInputValue(PtoEditLoadPerformanceRemarkNotes, workNotes);
+                        break;
+                    case "BUSINESS/UAT TEST CONTROL":
+                        clickElement(PtoEditBusinessUatDropdown);
+                        clickElement(updatedStatus);
+                        setInputValue(PtoEditBusinessUatRemarkNotes, workNotes);
+                        break;
+                    default:
+                        System.out.println("Invalid test type: " + test);
+                        break;
+                }
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
