@@ -186,3 +186,11 @@ public void changePtoDetailStatus(String ptoId, String ptoTest, String updateSta
     }
 }
 
+
+
+
+ if (record.contains(valueToCheck)) {
+        System.out.println(valueToCheck + " is available in record: " + record);
+    } else {
+        System.out.println("No Record found with '" + valueToCheck + "'");
+    }
