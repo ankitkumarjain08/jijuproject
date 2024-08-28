@@ -1,0 +1,53 @@
+import PyPDF4
+import logging
+
+# Configure logging
+logging.basicConfig(filename='pdf_reader.log', level=logging.ERROR,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+def read_pdf(file_path):
+    try:
+        # Open the PDF file
+        with open(file_path, 'rb') as file:
+            # Create a PDF reader object
+            pdf_reader = PyPDF4.PdfFileReader(file)
+            
+            # Check if the PDF is encrypted
+            if pdf_reader.isEncrypted:
+                try:
+                    pdf_reader.decrypt('')
+                except Exception as e:
+                    logging.error(f"Failed to decrypt PDF: {e}")
+                    return None
+            
+            # Get the number of pages
+            num_pages = pdf_reader.getNumPages()
+            
+            # Extract text from each page
+            text = ""
+            for page_num in range(num_pages):
+                try:
+                    page = pdf_reader.getPage(page_num)
+                    text += page.extractText()
+                except Exception as e:
+                    logging.error(f"Failed to extract text from page {page_num}: {e}")
+                    continue
+            
+            return text
+
+    except FileNotFoundError:
+        logging.error(f"File not found: {file_path}")
+    except PyPDF4.utils.PdfReadError as e:
+        logging.error(f"Error reading PDF: {e}")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+
+    return None
+
+# Example usage
+file_path = 'example.pdf'  # Replace with your PDF file path
+pdf_text = read_pdf(file_path)
+if pdf_text:
+    print(pdf_text)
+else:
+    print("Failed to read PDF.")
