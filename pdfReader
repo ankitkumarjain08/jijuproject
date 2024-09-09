@@ -78,3 +78,141 @@ output_csv_path = "C:\\Users\\Admin\\Downloads\\invoice_data.csv"
 write_to_csv(extracted_data, output_csv_path)
 
 print(f'Data successfully extracted and written to {output_csv_path}')
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+
+import csv
+import PyPDF4
+import logging
+import os
+
+# Configure logging
+logging.basicConfig(
+    filename='pdf_extractor.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Path to the PDF file
+pdf_path = '/mnt/data/wordpress-pdf-invoice-plugin-sample.pdf'
+
+# Read PDF using PyPDF4
+def read_pdf(pdf_path):
+    try:
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF4.PdfFileReader(file)
+            text = ''
+            for page_num in range(reader.numPages):
+                page = reader.getPage(page_num)
+                text += page.extract_text()
+            logging.info(f'Successfully read PDF: {pdf_path}')
+            return text
+    except FileNotFoundError:
+        logging.error(f'File not found: {pdf_path}')
+        raise
+    except Exception as e:
+        logging.error(f'Error reading PDF file: {e}')
+        raise
+
+# Extract relevant data dynamically
+def extract_data(pdf_text, fields_to_extract=None):
+    try:
+        # If no fields are provided, return the plain text of the PDF
+        if fields_to_extract is None or len(fields_to_extract) == 0:
+            logging.info('No fields passed, extracting plain text.')
+            return {'plain_text': pdf_text}
+        
+        # Initialize dictionary with required fields
+        data = {field: '' for field in fields_to_extract}
+        
+        # Split PDF text into lines
+        lines = pdf_text.split('\n')
+
+        # Extract specific fields if requested
+        for i, line in enumerate(lines):
+            if 'from_address' in fields_to_extract and line.startswith('From:'):
+                data['from_address'] = ' '.join(lines[i+1:i+4])
+            elif 'to_address' in fields_to_extract and line.startswith('To:'):
+                data['to_address'] = ' '.join(lines[i+1:i+4])
+            elif 'invoice_number' in fields_to_extract and 'Invoice Number' in line:
+                data['invoice_number'] = line.split()[-1]
+            elif 'order_number' in fields_to_extract and 'Order Number' in line:
+                data['order_number'] = line.split()[-1]
+            elif 'invoice_date' in fields_to_extract and 'Invoice Date' in line:
+                data['invoice_date'] = ' '.join(line.split()[2:])
+            elif 'due_date' in fields_to_extract and 'Due Date' in line:
+                data['due_date'] = ' '.join(line.split()[2:])
+            elif 'total_due' in fields_to_extract and 'Total Due' in line:
+                data['total_due'] = line.split()[-1]
+        
+        logging.info(f'Successfully extracted fields: {fields_to_extract}')
+        return data
+    except Exception as e:
+        logging.error(f'Error extracting data: {e}')
+        raise
+
+# Write to CSV dynamically
+def write_to_csv(data, output_file):
+    try:
+        # If plain text is extracted, write a single column
+        if 'plain_text' in data:
+            with open(output_file, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Plain Text'])
+                writer.writerow([data['plain_text']])
+        else:
+            # Otherwise, write specified fields to the CSV
+            fieldnames = [key for key in data if data[key]]
+            with open(output_file, mode='w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerow(data)
+
+        logging.info(f'Data successfully written to CSV: {output_file}')
+    except PermissionError:
+        logging.error(f'Permission denied: Unable to write to {output_file}')
+        raise
+    except Exception as e:
+        logging.error(f'Error writing to CSV: {e}')
+        raise
+
+# Main function to execute
+def main():
+    try:
+        # Check if the PDF file exists before proceeding
+        if not os.path.exists(pdf_path):
+            logging.error(f'The file {pdf_path} does not exist.')
+            return
+        
+        # Read the PDF content
+        pdf_text = read_pdf(pdf_path)
+
+        # Example 1: No parameters passed, extract plain text
+        fields_to_extract = []  # If no parameters are passed, leave this empty
+
+        # Example 2: Pass specific fields to extract (Uncomment to use this)
+        # fields_to_extract = ['from_address', 'to_address', 'invoice_number']
+
+        # Extract data based on parameters
+        extracted_data = extract_data(pdf_text, fields_to_extract)
+
+        # Output file path
+        output_csv_path = '/mnt/data/invoice_data_dynamic.csv'
+
+        # Write extracted data to CSV
+        write_to_csv(extracted_data, output_csv_path)
+
+        logging.info(f'Process completed successfully. Data written to {output_csv_path}')
+        print(f'Data successfully extracted and written to {output_csv_path}')
+
+    except Exception as e:
+        logging.error(f'Error in the main process: {e}')
+        print(f"An error occurred: {e}")
+
+# Run the main function
+if __name__ == '__main__':
+    main()
+
