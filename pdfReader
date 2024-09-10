@@ -216,3 +216,116 @@ def main():
 if __name__ == '__main__':
     main()
 
+------------------------------------------------------------------------------------------------------------------------------------
+import csv
+import PyPDF2
+import logging
+import os
+
+# Set up logging configuration
+logging.basicConfig(filename='pdf_extractor.log',
+                    level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Combine everything into one method
+def extract_pdf_to_csv(pdf_path, output_csv_path, fields_to_extract=None):
+    # Check if the PDF file exists
+    if not os.path.exists(pdf_path):
+        logging.error(f"File not found: {pdf_path}")
+        raise FileNotFoundError(f"The file {pdf_path} does not exist.")
+
+    try:
+        # Step 1: Read the PDF
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ''
+            for page in reader.pages:
+                text += page.extract_text()
+            logging.info(f"Successfully read PDF file: {pdf_path}")
+
+        # Step 2: Extract data based on fields_to_extract
+        if fields_to_extract is None:
+            # If no fields specified, return the entire text content
+            extracted_data = {'text': text}
+            logging.info("No specific fields provided. Extracting full PDF content.")
+        else:
+            # Extract specific fields from the PDF text
+            extracted_data = {}
+            lines = text.split('\n')
+
+            # Variables to store extracted data
+            from_address = ""
+            to_address = ""
+            invoice_number = ""
+            order_number = ""
+            invoice_date = ""
+            due_date = ""
+            total_due = ""
+
+            # Loop through the text to find and extract the necessary fields
+            for i, line in enumerate(lines):
+                if 'from_address' in fields_to_extract and line.startswith('From:'):
+                    from_address = ' '.join(lines[i + 1:i + 4])
+                if 'to_address' in fields_to_extract and line.startswith('To:'):
+                    to_address = ' '.join(lines[i + 1:i + 4])
+                if 'invoice_number' in fields_to_extract and 'Invoice Number' in line:
+                    invoice_number = line.split()[-1]
+                if 'order_number' in fields_to_extract and 'Order Number' in line:
+                    order_number = line.split()[-1]
+                if 'invoice_date' in fields_to_extract and 'Invoice Date' in line:
+                    invoice_date = ' '.join(line.split()[2:])
+                if 'due_date' in fields_to_extract and 'Due Date' in line:
+                    due_date = ' '.join(line.split()[2:])
+                if 'total_due' in fields_to_extract and 'Total Due' in line:
+                    total_due = line.split()[-1]
+
+            # Store extracted fields in the dictionary
+            if 'from_address' in fields_to_extract:
+                extracted_data['from_address'] = from_address
+            if 'to_address' in fields_to_extract:
+                extracted_data['to_address'] = to_address
+            if 'invoice_number' in fields_to_extract:
+                extracted_data['invoice_number'] = invoice_number
+            if 'order_number' in fields_to_extract:
+                extracted_data['order_number'] = order_number
+            if 'invoice_date' in fields_to_extract:
+                extracted_data['invoice_date'] = invoice_date
+            if 'due_date' in fields_to_extract:
+                extracted_data['due_date'] = due_date
+            if 'total_due' in fields_to_extract:
+                extracted_data['total_due'] = total_due
+
+            logging.info(f"Successfully extracted specific fields: {extracted_data}")
+
+        # Step 3: Write extracted data to CSV
+        with open(output_csv_path, mode='w', newline='') as file:
+            if fields_to_extract is None:
+                # Write full content to the CSV
+                writer = csv.writer(file)
+                writer.writerow(['Full PDF Content'])
+                writer.writerow([extracted_data['text']])  # Write full text content
+            else:
+                # Write only the extracted fields
+                writer = csv.DictWriter(file, fieldnames=fields_to_extract)
+                writer.writeheader()
+                writer.writerow({field: extracted_data.get(field, '') for field in fields_to_extract})
+
+        logging.info(f"Data successfully written to CSV: {output_csv_path}")
+        print(f"Data successfully extracted and written to {output_csv_path}")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        print(f"An error occurred: {e}")
+        raise
+
+# Example usage:
+# If fields_to_extract is None, it will extract the full PDF content.
+pdf_path = "C:\\Users\\Admin\\Downloads\\wordpress-pdf-invoice-plugin-sample.pdf"
+output_csv_path = "C:\\Users\\Admin\\Downloads\\full_pdf_content.csv"
+
+# Example with no fields (extracts the full content)
+extract_pdf_to_csv(pdf_path, output_csv_path, fields_to_extract=['from_address', 'to_address', 'invoice_number'])
+
+# Example with specific fields (e.g., from_address, to_address)
+# fields_to_extract = ['from_address', 'to_address']
+# extract_pdf_to_csv(pdf_path, output_csv_path, fields_to_extract)
