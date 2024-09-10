@@ -452,3 +452,117 @@ if __name__ == "__main__":
     # To write the full text instead, call without the fields parameter:
     # process_pdf(pdf_path, output_csv_path)
 
+---------------------------------------------------------------------------------------------------------------------
+
+import csv
+import json
+import PyPDF2
+import logging
+import re
+
+# Configure logging
+logging.basicConfig(
+    filename="pdf_processing.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
+def process_pdf(pdf_path, output_path, fields=None, output_format="CSV"):
+    """
+    Processes a PDF to extract specific fields and write them to CSV or JSON.
+
+    :param pdf_path: Path to the input PDF file.
+    :param output_path: Path to the output file (either CSV or JSON).
+    :param fields: Dictionary of fields to extract and the number of lines for each field.
+                   If the value is 1, extracts from the same line using split().
+                   If the value is > 1, extracts that many lines after the field.
+                   If the value is 0, extracts just the next line after the field.
+                   If the value is 2, uses a specific extraction method for 'Due Date'.
+                   Example: {'From Address': 4, 'Invoice Number': 1, 'Hrs/Qty': 0, 'Due Date': 2}.
+    :param output_format: The format in which to write the output, either 'CSV' or 'JSON'.
+    """
+    try:
+        # Step 1: Read PDF
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ''
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+        logging.info(f"Successfully read PDF: {pdf_path}")
+
+        # Step 2: Extract Data
+        extracted_data = {}
+
+        if fields:
+            # Split the PDF text into lines
+            lines = text.split('\n')
+
+            for field, num_lines in fields.items():
+                extracted_data[field] = ''  # Initialize field value to empty
+
+                # Search for the field in the PDF text
+                for i, line in enumerate(lines):
+                    if field in line:
+                        if num_lines == 1:
+                            # If num_lines is 1, extract from the same line using split
+                            extracted_data[field] = line.split()[-1].strip()
+                        elif num_lines == 0:
+                            # If num_lines is 0, extract just the next line, but only capture numeric part (Hrs/Qty)
+                            next_line = lines[i + 1].strip()
+                            match = re.search(r'\d+(\.\d+)?', next_line)  # Extract numbers with optional decimal
+                            if match:
+                                extracted_data[field] = match.group(0)
+                            else:
+                                extracted_data[field] = next_line  # Default if no match found
+                        elif num_lines == 2:
+                            # If num_lines is 2, use the specific extraction method for 'Due Date'
+                            extracted_data[field] = ' '.join(line.split()[2:]).strip()
+                        else:
+                            # If num_lines is greater than 2, extract multiple lines
+                            extracted_data[field] = ' '.join(lines[i + 1:i + 1 + num_lines]).strip()
+                        break  # Exit loop after finding the field
+
+        else:
+            # No specific fields requested, include full text
+            extracted_data['Full Text'] = text
+        logging.info("Data extraction successful.")
+
+        # Step 3: Write to CSV or JSON based on the output format
+        if output_format.upper() == "CSV":
+            with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+                if fields:
+                    writer = csv.DictWriter(file, fieldnames=fields.keys())
+                    writer.writeheader()
+                    writer.writerow(extracted_data)
+                else:
+                    writer = csv.writer(file)
+                    writer.writerow(['Full Text'])
+                    writer.writerow([extracted_data['Full Text']])
+            logging.info(f"Data successfully written to CSV: {output_path}")
+
+        elif output_format.upper() == "JSON":
+            with open(output_path, mode='w', encoding='utf-8') as file:
+                json.dump(extracted_data, file, indent=4)
+            logging.info(f"Data successfully written to JSON: {output_path}")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
+
+
+# Example usage:
+if __name__ == "__main__":
+    pdf_path = "C:\\Users\\Admin\\Downloads\\wordpress-pdf-invoice-plugin-sample.pdf"
+    output_path = "C:\\Users\\Admin\\Downloads\\file.json"  # Change to CSV or JSON output file
+    fields_to_extract = {
+        'From Address': 4,  # Extract 4 lines after 'From Address'
+        'To Address': 3,  # Extract 3 lines after 'To Address'
+        'Invoice Number': 1,  # Extract 1 line for 'Invoice Number'
+        'Hrs/Qty': 0,  # Extract the next line for 'Hrs/Qty', but only the numeric part
+        'Due Date': 2  # Extract from the line after the field's name, using a specific method for 'Due Date'
+    }
+    process_pdf(pdf_path, output_path, fields=fields_to_extract, output_format="JSON")
+
