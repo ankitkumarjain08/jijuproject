@@ -329,3 +329,126 @@ extract_pdf_to_csv(pdf_path, output_csv_path, fields_to_extract=['from_address',
 # Example with specific fields (e.g., from_address, to_address)
 # fields_to_extract = ['from_address', 'to_address']
 # extract_pdf_to_csv(pdf_path, output_csv_path, fields_to_extract)
+
+------------------------------------------------------------------------------------------------------------------------------
+
+import csv
+import PyPDF2
+import logging
+
+# Configure logging
+logging.basicConfig(
+    filename="pdf_processing.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def process_pdf(pdf_path, output_csv_path, fields=None):
+    """
+    Processes a PDF to extract specific fields and write them to a CSV.
+    If no fields are specified, writes the full PDF text to the CSV.
+
+    :param pdf_path: Path to the input PDF file.
+    :param output_csv_path: Path to the output CSV file.
+    :param fields: List of fields to extract and write. 
+                   If None, writes the full PDF text.
+                   Possible fields: 'From Address', 'To Address', 'Invoice Number',
+                                   'Order Number', 'Invoice Date', 'Due Date', 'Total Due'
+    """
+    try:
+        # Step 1: Read PDF
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ''
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+            logging.info(f"Successfully read PDF: {pdf_path}")
+        
+        # Step 2: Extract Data
+        extracted_data = {}
+        if fields:
+            # Initialize all possible fields
+            data_keys = {
+                'From Address': '',
+                'To Address': '',
+                'Invoice Number': '',
+                'Order Number': '',
+                'Invoice Date': '',
+                'Due Date': '',
+                'Total Due': ''
+            }
+
+            lines = text.split('\n')
+            for i, line in enumerate(lines):
+                if 'From:' in line and 'From Address' in fields:
+                    data_keys['From Address'] = ' '.join(lines[i + 1:i + 4]).strip()
+                elif 'To:' in line and 'To Address' in fields:
+                    data_keys['To Address'] = ' '.join(lines[i + 1:i + 4]).strip()
+                elif 'Invoice Number' in line and 'Invoice Number' in fields:
+                    data_keys['Invoice Number'] = line.split()[-1].strip()
+                elif 'Order Number' in line and 'Order Number' in fields:
+                    data_keys['Order Number'] = line.split()[-1].strip()
+                elif 'Invoice Date' in line and 'Invoice Date' in fields:
+                    data_keys['Invoice Date'] = ' '.join(line.split()[2:]).strip()
+                elif 'Due Date' in line and 'Due Date' in fields:
+                    data_keys['Due Date'] = ' '.join(line.split()[2:]).strip()
+                elif 'Total Due' in line and 'Total Due' in fields:
+                    data_keys['Total Due'] = line.split()[-1].strip()
+            
+            # Filter only the requested fields
+            for key in fields:
+                extracted_data[key] = data_keys.get(key, '')
+            
+            logging.info("Data extraction successful for specified fields.")
+        else:
+            # No specific fields requested, include full text
+            extracted_data['Full Text'] = text
+            logging.info("No specific fields provided. Full PDF text will be written.")
+        
+        # Step 3: Write to CSV
+        with open(output_csv_path, mode='w', newline='', encoding='utf-8') as file:
+            if fields:
+                # Write only the specified fields
+                writer = csv.DictWriter(file, fieldnames=fields)
+                writer.writeheader()
+                writer.writerow(extracted_data)
+            else:
+                # Write the full text
+                writer = csv.writer(file)
+                writer.writerow(['Full Text'])
+                writer.writerow([extracted_data['Full Text']])
+        
+        logging.info(f"Data successfully written to CSV: {output_csv_path}")
+        print(f"Data successfully extracted and written to {output_csv_path}")
+
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {pdf_path} - {e}")
+        print(f"Error: File not found - {e}")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
+
+# Example Usage
+if __name__ == "__main__":
+    pdf_path = "C:\\Users\\Admin\\Downloads\\wordpress-pdf-invoice-plugin-sample.pdf"
+    output_csv_path = "C:\\Users\\Admin\\Downloads\\invoice_data.csv"
+    
+    # Specify the fields you want to extract. If None, full text will be written.
+    fields_to_extract = [
+        'From Address',
+        'To Address',
+        'Invoice Number',
+        'Order Number',
+        'Invoice Date',
+        'Due Date',
+        'Total Due'
+    ]
+    
+    # Call the process_pdf function with specified fields
+    process_pdf(pdf_path, output_csv_path, fields=fields_to_extract)
+    
+    # To write the full text instead, call without the fields parameter:
+    # process_pdf(pdf_path, output_csv_path)
+
