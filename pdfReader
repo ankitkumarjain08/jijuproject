@@ -566,3 +566,121 @@ if __name__ == "__main__":
     }
     process_pdf(pdf_path, output_path, fields=fields_to_extract, output_format="JSON")
 
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+import csv
+import json
+import logging
+import fitz
+
+import pymupdf # import PyMuPDF
+
+
+# Configure logging
+logging.basicConfig(
+    filename="pdf_processing.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
+def process_pdf(pdf_path, output_path, field=None, value=None, output_format="CSV"):
+    """
+    Processes a PDF to extract specific fields and write them to CSV or JSON.
+
+    :param pdf_path: Path to the input PDF file.
+    :param output_path: Path to the output file (either CSV or JSON).
+    :param field: key from fields_to_extract_dictionary.
+    :param value: value from fields_to_extract_dictionary
+
+    :param output_format: The format in which to write the output, either 'CSV' or 'JSON'.
+    """
+    extracted_data = {}
+    try:
+
+            page_number=value[0]-1
+            data_type=value[1]
+            doc = pymupdf.open(pdf_path)  # open a supported document
+            page = doc[page_number].get_textpage()  # load the required page (0-based index)
+
+
+            doc = fitz.open(pdf_path)
+            if data_type == 'Text':
+                data = page.extractJSON()
+                json1_data = json.loads(data)
+                #print(type(json1_data['blocks']),json1_data['blocks'][0])
+                for b in json1_data['blocks']:  # iterate through the text blocks
+                    for l in b["lines"]:  # iterate through the text lines
+                        for s in l["spans"]:  # iterate through the text spans
+
+                            if  s['text'] == field:
+                                bbox=b['bbox']
+                                print(s)
+                                for page_num, page in enumerate(doc.pages()):
+                                    print(page.get_textbox(bbox))
+                                    extracted_data=page.get_textbox(bbox)
+                                    extracted_data = [line.strip() for line in extracted_data.strip().split('\n')]
+
+                #for field in page.widgets():
+                    #print(field)
+                    #pass
+                #print(extracted_data)
+                #for field, num_lines in fields.items():
+                 #   extracted_data[field] = ''  # Initialize field value to empty
+
+                # Search for the field in the PDF text
+                #for i, line in enumerate(lines):
+                 #   if field in line:
+
+            elif data_type == 'Table':
+                #Get all the tables from particular page
+                tabs = page.find_tables()
+                for tab in tabs:
+                    #Just for seeing the data
+                    #for line in tab.extract():  # print cell text for each row
+                        #print(line)
+
+                    #convert the tables to dataframe(Table format)
+                    df=tab.to_pandas()
+                    #add each table to the list for further processing
+                    extracted_data.update(df.to_dict())
+
+                print(extracted_data)
+    except Exception as e:
+        print(e)
+
+        # Step 3: Write to CSV or JSON based on the output format
+    if output_format.upper() == "CSV":
+            with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+                if field:
+                    writer = csv.DictWriter(file, fieldnames=field)
+                    writer.writeheader()
+                    writer.writerow(extracted_data)
+                else:
+                    writer = csv.writer(file)
+                    writer.writerow(['Full Text'])
+                    writer.writerow([extracted_data['Full Text']])
+            logging.info(f"Data successfully written to CSV: {output_path}")
+
+    elif output_format.upper() == "JSON":
+            with open(output_path, mode='w', encoding='utf-8') as file:
+                json.dump(extracted_data, file, indent=4)
+            logging.info(f"Data successfully written to JSON: {output_path}")
+# Example usage:
+if __name__ == "__main__":
+    pdf_path = "C:\\Users\\Admin\\Downloads\\wordpress-pdf-invoice-plugin-sample.pdf"
+    output_path = "C:\\Users\\Admin\\Downloads\\file.json"  # Change to CSV or JSON output file
+    #page number here is based on index, so page 1 of file is denoted by 0 .
+    # similarly page 2 of file is denoted by 1 and so on.
+    fields_to_extract = {
+        'From:':[1,'Text'],
+        'To:':[1,'Text'],
+        #'Benefits to Issuers': [2,'Table'],  # Extract the next line for 'Hrs/Qty', but only the numeric part
+
+    }
+    for field,value in fields_to_extract.items():
+        process_pdf(pdf_path, output_path, field=field, value=value, output_format="JSON")
+
+
+
