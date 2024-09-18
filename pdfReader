@@ -683,4 +683,105 @@ if __name__ == "__main__":
         process_pdf(pdf_path, output_path, field=field, value=value, output_format="JSON")
 
 
+--------------------------------------------------------------------------------------------------------------------------
+import csv
+import json
+import logging
+import fitz  # PyMuPDF for text extraction
+import pdfplumber  # Fallback for PDF text extraction
+
+logging.basicConfig(
+    filename="pdf_processing.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def extract_with_fitz(doc, header):
+    """
+    Extract text from a PDF using PyMuPDF (fitz).
+    :param doc: The PDF document object.
+    :param header: The header text to look for.
+    :return: Extracted text or None if not found.
+    """
+    extracted_data = []
+    try:
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)  # Load page
+            text = page.get_text("text")  # Extract text
+            if header in text:
+                extracted_data.append(text)
+    except Exception as e:
+        logging.error(f"Error using PyMuPDF: {e}")
+    return extracted_data if extracted_data else None
+
+
+def extract_with_pdfplumber(pdf_path, header):
+    """
+    Extract text from a PDF using pdfplumber as a fallback.
+    :param pdf_path: The path to the PDF file.
+    :param header: The header text to look for.
+    :return: Extracted text or None if not found.
+    """
+    extracted_data = []
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                text = page.extract_text()
+                if header in text:
+                    extracted_data.append(text)
+    except Exception as e:
+        logging.error(f"Error using pdfplumber: {e}")
+    return extracted_data if extracted_data else None
+
+
+def process_pdf(pdf_path, output_path, headers, output_format="CSV"):
+    """
+    Process a PDF file and extract text based on the provided headers.
+    :param pdf_path: Path to the PDF file.
+    :param output_path: Path to the output file (CSV or JSON).
+    :param headers: List of headers to search for in the PDF.
+    :param output_format: Output format for the extracted data (CSV/JSON).
+    """
+    extracted_data = {}
+    try:
+        # Step 1: Try extracting with fitz (PyMuPDF)
+        doc = fitz.open(pdf_path)
+        for header in headers:
+            data = extract_with_fitz(doc, header)
+            if data:
+                extracted_data[header] = data
+            else:
+                logging.info(f"'{header}' not found using PyMuPDF. Trying pdfplumber.")
+
+        # Step 2: If PyMuPDF fails, try pdfplumber
+        if not extracted_data:
+            for header in headers:
+                data = extract_with_pdfplumber(pdf_path, header)
+                if data:
+                    extracted_data[header] = data
+
+        # Step 3: Write to CSV or JSON
+        if output_format.upper() == "CSV":
+            with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                for field, text in extracted_data.items():
+                    writer.writerow([field, ' '.join(text)])
+            logging.info(f"Data successfully written to CSV: {output_path}")
+
+        elif output_format.upper() == "JSON":
+            with open(output_path, mode='w', encoding='utf-8') as file:
+                json.dump(extracted_data, file, indent=4)
+            logging.info(f"Data successfully written to JSON: {output_path}")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        print(f"Error: {e}")
+
+
+# Example usage:
+if __name__ == "__main__":
+    pdf_path = "/mnt/data/depositary-receipts-opportunity-product-paper.pdf"
+    output_path = "output.json"  # Can change to CSV if needed
+    headers = ["MANAGED ACCOUNT", "DEPOSITARY RECEIPTS"]  # List of headers to search for
+    process_pdf(pdf_path, output_path, headers, output_format="JSON")
 
