@@ -784,4 +784,57 @@ if __name__ == "__main__":
     output_path = "output.json"  # Can change to CSV if needed
     headers = ["MANAGED ACCOUNT", "DEPOSITARY RECEIPTS"]  # List of headers to search for
     process_pdf(pdf_path, output_path, headers, output_format="JSON")
+---------------------------------------------------------------------------------------------------------------------------------
+
+import pdfplumber
+from docx import Document
+import re
+
+# Function to convert PDF to Word
+def pdf_to_word(pdf_path, word_path):
+    with pdfplumber.open(pdf_path) as pdf:
+        doc = Document()
+        for page in pdf.pages:
+            text = page.extract_text()
+            doc.add_paragraph(text)
+        doc.save(word_path)
+    print(f"PDF converted to Word: {word_path}")
+
+# Function to extract text based on a header from Word document
+def extract_text_by_header(word_path, header):
+    doc = Document(word_path)
+    full_text = []
+    found_header = False
+    extracted_text = []
+
+    # Iterate through the paragraphs in the Word document
+    for para in doc.paragraphs:
+        para_text = para.text.strip()
+        
+        # Check if we found the header
+        if re.search(f'^{header}', para_text, re.IGNORECASE):
+            found_header = True
+            extracted_text.append(para_text)  # Include header
+        
+        # If header is found, keep adding paragraphs until next header or empty line
+        elif found_header:
+            if para_text == '' or re.search(r'^[A-Z\s]+$', para_text):  # Next header or empty line
+                break
+            extracted_text.append(para_text)
+    
+    if not extracted_text:
+        print(f"No content found for header: {header}")
+    else:
+        print(f"Extracted content for '{header}':\n")
+        print("\n".join(extracted_text))
+
+# Paths to the PDF and Word files
+pdf_path = "/mnt/data/depositary-receipts-opportunity-product-paper.pdf"
+word_path = "/mnt/data/output.docx"
+
+# Step 1: Convert PDF to Word
+pdf_to_word(pdf_path, word_path)
+
+# Step 2: Extract text by header (e.g., "MANAGED ACCOUNTS")
+extract_text_by_header(word_path, "MANAGED ACCOUNTS")
 
