@@ -838,3 +838,30 @@ pdf_to_word(pdf_path, word_path)
 # Step 2: Extract text by header (e.g., "MANAGED ACCOUNTS")
 extract_text_by_header(word_path, "MANAGED ACCOUNTS")
 
+--------------------------------------------------------------------------------------------------------------
+
+from pdfminer.high_level import extract_text
+
+def extract_paragraph_by_first_word(pdf_file_path, first_word):
+    # Extract all text from the PDF
+    text = extract_text(pdf_file_path)
+    
+    # Split text by line breaks (this assumes paragraphs are separated by new lines)
+    paragraphs = text.split('\n\n')  # Using double newlines to separate paragraphs
+    
+    # Clean up paragraphs and iterate over them
+    for paragraph in paragraphs:
+        # Strip leading/trailing spaces and check if the first word matches
+        paragraph = paragraph.strip()
+        
+        if paragraph.startswith(first_word):
+            return paragraph
+    
+    return f"No paragraph starts with the word '{first_word}'"
+
+# Example usage
+pdf_file_path = '/path/to/your/file.pdf'
+first_word = 'Managed'  # Replace with the first word you're looking for
+result = extract_paragraph_by_first_word(pdf_file_path, first_word)
+
+print(result)
