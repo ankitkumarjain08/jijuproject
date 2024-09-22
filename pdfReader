@@ -865,3 +865,116 @@ first_word = 'Managed'  # Replace with the first word you're looking for
 result = extract_paragraph_by_first_word(pdf_file_path, first_word)
 
 print(result)
+
+----------------------------------------------------------------------------------------------------------------------------
+
+import json
+import csv
+import fitz  # PyMuPDF
+from tabula import read_pdf  # For extracting tables
+
+
+def process_pdf(pdf_path, field=None, value=None):
+    extracted_data = []
+    try:
+        page_number = value[0] - 1  # Adjusting to 0-based index for PyMuPDF
+        data_type = value[1]
+
+        doc = fitz.open(pdf_path)  # Open the PDF
+        page = doc.load_page(page_number)  # Load the specified page
+
+        if data_type == 'Text':
+            text = page.get_text('json')  # Extract text as JSON
+            json_data = json.loads(text)
+            print(json_data)
+
+            found = False  # Track if we've found the desired field
+
+            # Iterate through blocks in the page
+            for block in json_data['blocks']:
+                for line in block['lines']:  # Iterate through lines within a block
+                    line_text = ""
+                    for span in line['spans']:  # Iterate through spans within a line
+                        span_text = span['text'].strip()
+
+                        # If the desired field is found, mark it as found
+                        if field in span_text:
+                            found = True
+                            continue  # Skip the span containing the field itself
+
+                        # Once the field is found, start collecting subsequent text
+                        if found:
+                            line_text += span_text
+
+                    if line_text:
+                        extracted_data.append(line_text)  # Append collected text after the field
+
+            # Combine all extracted text into a single string
+            combined_text = " ".join(extracted_data).strip()
+            return {field: combined_text} if combined_text else None
+
+        elif data_type == 'Table':
+            df = read_pdf(pdf_path, pages=value[0])  # Tabula to extract table
+            extracted_data = {}
+            for x in df:
+                if field in x.columns:
+                    extracted_data = x.to_dict()
+
+            return {field: extracted_data} if extracted_data else None
+
+        elif data_type == 'VTable':
+            df = read_pdf(pdf_path, pages=value[0])  # VTable (vertical table)
+            extracted_data = []
+            for x in df:
+                if field in x.columns:
+                    extracted_data = x[field].values.tolist()  # Convert to list
+                    break
+
+            return {field: extracted_data} if extracted_data else None
+
+    except Exception as e:
+        print(f"Error processing PDF: {e}")
+        return None
+
+
+def write_to_file(output_format, output_path, extracted_data):
+    try:
+        if output_format.upper() == "CSV":
+            with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.DictWriter(file, fieldnames=extracted_data[0].keys())
+                writer.writeheader()
+                writer.writerows(extracted_data)
+            print(f"Data successfully written to CSV: {output_path}")
+
+        elif output_format.upper() == "JSON":
+            with open(output_path, mode='w', encoding='utf-8') as file:
+                json.dump(extracted_data, file, indent=4)
+            print(f"Data successfully written to JSON: {output_path}")
+
+    except Exception as e:
+        print(f"Error writing file: {e}")
+
+
+def pdf_read_ops(pdf_path=None, output_path=None, output_format="JSON"):
+    pdf_path = "C:\\Users\\Admin\\Downloads\\depositary-receipts-opportunity-product-paper.pdf"
+    output_path = "C:\\Users\\Admin\\Downloads\\file.txt"  # Change to CSV or JSON output file
+
+    fields_to_extract = {
+        # 'From:': [1, 'Text'],
+        # 'To:': [1, 'Text'],
+        # 'Hrs/Qty': [1, 'Table'],
+        'SIZE OF THE DR MARKET': [4, 'Text'],
+        # 'Industry Leading Experience': [9, 'Text']
+    }
+
+    output_list = []
+    for field, value in fields_to_extract.items():
+        data = process_pdf(pdf_path, field=field, value=value)
+        if data:
+            output_list.append(data)
+
+    write_to_file(output_format, output_path, output_list)
+
+
+if __name__ == "__main__":
+    pdf_read_ops()
