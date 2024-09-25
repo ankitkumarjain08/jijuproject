@@ -1,0 +1,75 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+import time
+from datetime import datetime
+
+
+def select_date(driver, date, format, date_picker_xpath):
+    # Identify the date format and parse accordingly
+    if format == "DDMMYYYY":
+        parsed_date = datetime.strptime(date, "%d%m%Y")
+    elif format == "MMDDYYYY":
+        parsed_date = datetime.strptime(date, "%m%d%Y")
+    else:
+        raise ValueError("Unsupported date format. Use DDMMYYYY or MMDDYYYY.")
+
+    # Extract day, month, and year
+    day = parsed_date.day
+    month = parsed_date.month - 1  # Selenium expects month to be 0-based
+    year = parsed_date.year
+
+    # Open the date picker using the passed XPath
+    date_picker = driver.find_element(By.XPATH, date_picker_xpath)
+    date_picker.click()
+
+    # Select the year
+    select_year(driver, year)
+
+    # Select the month
+    select_month(driver, month)
+
+    # Select the day
+    select_day(driver, day)
+
+
+def select_year(driver, year):
+    # Logic to select the year from the date picker
+    while True:
+        year_element = driver.find_element(By.CSS_SELECTOR, ".year-selector")  # Adjust locator as needed
+        displayed_year = int(year_element.text)
+        if displayed_year == year:
+            year_element.click()
+            break
+        elif displayed_year > year:
+            driver.find_element(By.CSS_SELECTOR, ".prev-year").click()
+        else:
+            driver.find_element(By.CSS_SELECTOR, ".next-year").click()
+
+
+def select_month(driver, month):
+    # Logic to select the month from the date picker
+    while True:
+        month_element = driver.find_element(By.CSS_SELECTOR, ".month-selector")  # Adjust locator as needed
+        displayed_month = get_month_number(month_element.text)
+
+        if displayed_month == month:
+            break
+        elif displayed_month > month:
+            driver.find_element(By.CSS_SELECTOR, ".prev-month").click()
+        else:
+            driver.find_element(By.CSS_SELECTOR, ".next-month").click()
+
+
+def select_day(driver, day):
+    # Logic to select the day from the date picker
+    day_element = driver.find_element(By.XPATH, f"//td[text()='{day}']")  # Adjust locator as needed
+    day_element.click()
+
+
+def get_month_number(month_name):
+    # Convert month name (e.g., "January") to month number (0-based)
+    return datetime.strptime(month_name, "%B").month - 1
+
