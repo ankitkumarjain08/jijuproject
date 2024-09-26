@@ -109,3 +109,42 @@ def get_month_number(month_name):
     # Convert month name (e.g., "January") to month number (0-based)
     return datetime.strptime(month_name, "%B").month - 1
 
+-----------------------------------------------------------------------------------------
+
+from datetime import datetime
+
+def get_current_date(keyword, date_format):
+    """
+    Return the current date in the specified format if the keyword is 'GetDate'.
+    
+    Parameters:
+    - keyword: String, should be 'GetDate' to trigger the date retrieval.
+    - date_format: String specifying the date format (e.g., 'DD/MM/YYYY', 'MM-DD-YYYY').
+    
+    Returns:
+    - Formatted current date as a string.
+    
+    Example:
+    get_current_date('GetDate', 'DD/MM/YYYY') -> '26/09/2024'
+    get_current_date('GetDate', 'MM-DD-YYYY') -> '09-26-2024'
+    """
+    if keyword != 'GetDate':
+        raise ValueError("Invalid keyword. Use 'GetDate' to get the current date.")
+    
+    # Map the custom date format to the format that strftime expects
+    format_map = {
+        'DD': '%d',
+        'MM': '%m',
+        'YYYY': '%Y'
+    }
+    
+    # Replace the format placeholders with strftime-compatible tokens
+    for placeholder, strftime_format in format_map.items():
+        date_format = date_format.replace(placeholder, strftime_format)
+    
+    # Get the current date and format it according to the provided date_format
+    current_date = datetime.now().strftime(date_format)
+    
+    return current_date
+
+
