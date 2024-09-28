@@ -147,4 +147,35 @@ def get_current_date(keyword, date_format):
     
     return current_date
 
+----------------------------------------------------------------------------------------------------------------
+from datetime import datetime
+
+def return_today_date(date_format='yyyy-mm-dd'):
+    # Mapping the user input format to strftime placeholders
+    format_mapping = {
+        'DD': '%d',
+        'MMM': '%b',
+        'MM': '%m',
+        'YYYY': '%Y',
+        'YY': '%y',
+        'HH': '%H',
+        'MIN': '%M',
+        'SS': '%S',
+        # Add more mappings if needed
+    }
+    
+    # Convert the input format to uppercase to handle case-insensitive inputs
+    date_format = date_format.upper()
+    
+    # Replace the components in the format with their strftime equivalents
+    for key, value in format_mapping.items():
+        date_format = date_format.replace(key, value)
+    
+    # Get today's date and format it according to the processed format
+    return datetime.today().strftime(date_format)
+
+# Example usage
+print(return_today_date('dd-mmm-yyyy'))  # Returns today's date in 'DD-MMM-YYYY' format
+print(return_today_date('dd/mm/yyyy'))   # Returns today's date in 'DD/MM/YYYY' format
+print(return_today_date('yyyy/mm/dd hh:min:ss'))  # Returns today's date and time
 
