@@ -134,3 +134,55 @@ for heading in example_headings:
     else:
         print(f"\n{heading}: Table not found.")
 
+------------------------------------------------------------------------------------------------------------------------
+
+import random
+import string
+
+def generate_random_string(length):
+    letters = string.ascii_letters  # Contains both lowercase and uppercase letters
+    return ''.join(random.choice(letters) for _ in range(length))
+
+# Example usage:
+random_string = generate_random_string(50)
+print(random_string)
+
+
+
+
+def generate_random_number(digits):
+    try:
+        if digits < 1:
+            raise ValueError("Number of digits should be at least 1")
+        start = 10 ** (digits - 1)
+        end = (10 ** digits) - 1
+        return random.randint(start, end)
+
+    except ValueError as e:
+        return str(e)
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+
+# Example usage:
+random_number = generate_random_number(3.0)
+print(random_number)
+
+
+def generate_alphanumeric_string(length):
+    try:
+        if length < 1:
+            raise ValueError("Length should be at least 1")
+        characters = string.ascii_letters + string.digits  # Letters (both cases) and digits
+        return ''.join(random.choice(characters) for _ in range(length))
+
+    except ValueError as e:
+        return str(e)
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+
+# Example usage:
+alphanumeric_string = generate_alphanumeric_string(10)
+print(alphanumeric_string)
+
