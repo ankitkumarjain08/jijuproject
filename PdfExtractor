@@ -1,0 +1,167 @@
+#pip install pdfplumber
+#pip install pdfplumber openpyxl
+#pip install pdfplumber pandas openpyxl
+
+import pdfplumber
+import pandas as pd
+import re
+
+def clean_row(row):
+    """Clean and normalize the content of a row."""
+    cleaned_row = [cell.strip() if isinstance(cell, str) else cell for cell in row]
+    # Handle newline characters within cells
+    cleaned_row = [re.sub(r'\s+', ' ', cell) if isinstance(cell, str) else cell for cell in cleaned_row]
+    return cleaned_row
+
+def extract_tables_after_heading(pdf_path, heading_text):
+    """Extract tables from the PDF after a specified heading."""
+    with pdfplumber.open(pdf_path) as pdf:
+        tables = []
+        heading_found = False
+
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text is None:
+                continue
+
+            lines = text.split('\n')
+
+            # Look for the heading in the page
+            if not heading_found:
+                for line in lines:
+                    if heading_text.lower() in line.lower():
+                        heading_found = True
+                        break
+
+            # Once the heading is found, extract tables
+            if heading_found:
+                current_tables = page.extract_tables()
+                
+                if current_tables:
+                    for table in current_tables:
+                        combined_table = []
+                        current_header = None
+
+                        for row in table:
+                            cleaned_row = clean_row(row)
+                            
+                            # Ignore empty rows
+                            if all(cell is None or cell == '' for cell in cleaned_row):
+                                continue
+                            
+                            # Detecting the header
+                            if current_header is None:
+                                current_header = [cell for cell in cleaned_row if cell is not None and cell != '']
+                            else:
+                                # If the current row matches the header length, add it to the combined table
+                                if len(cleaned_row) == len(current_header):
+                                    combined_table.append(cleaned_row)
+                                else:
+                                    # If the row doesn't match the header length, treat it as a continuation or new data
+                                    combined_table.append(cleaned_row)
+
+                        # Filter out empty or malformed rows
+                        filtered_table = [row for row in combined_table if any(cell for cell in row)]
+                        if filtered_table:
+                            tables.append(filtered_table)
+
+                # Optionally stop searching after finding the first table
+                if tables:
+                    break  # Exit after finding the tables for the heading
+
+        return tables
+
+def extract_text_between_headings(pdf_path, start_heading):
+    """Extract text content between specified heading and the next heading."""
+    with pdfplumber.open(pdf_path) as pdf:
+        content = []
+        heading_found = False
+        found_start_heading = False
+
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text is None:
+                continue
+            
+            lines = text.split('\n')
+
+            for line in lines:
+                # Check if we found the start heading
+                if not found_start_heading:
+                    if start_heading.lower() in line.lower():
+                        found_start_heading = True
+                else:
+                    # Check if the line is another heading (here, we assume any uppercase line is a heading)
+                    if line.isupper() and line.strip() != start_heading.upper():
+                        break
+
+                    # Only add non-empty lines
+                    if line.strip():  
+                        content.append(line.strip())
+
+        return content
+
+def format_and_export_tables_to_excel(tables_data, heading):
+    """Format the extracted tables and export them to an Excel file."""
+    with pd.ExcelWriter(f"{heading}_extracted_tables.xlsx", engine='openpyxl') as writer:
+        for idx, table in enumerate(tables_data):
+            if len(table) > 1:  # At least one header and one row of data
+                header = table[0]
+                data_rows = table[1:]
+
+                # Normalize row lengths
+                formatted_rows = []
+                for row in data_rows:
+                    if len(row) < len(header):
+                        # Handle rows that are shorter than the header
+                        row.extend([''] * (len(header) - len(row)))  # Fill with empty strings
+                    formatted_rows.append(row)
+
+                # Check if all data rows match the header length
+                filtered_rows = [row for row in formatted_rows if len(row) == len(header)]
+
+                if filtered_rows:  # Only create DataFrame if there are valid rows
+                    df = pd.DataFrame(filtered_rows, columns=header)
+                    df.to_excel(writer, sheet_name=f'Table_{idx + 1}', index=False)
+
+# Main program execution
+pdf_path = '/content/wordpress-pdf-invoice-plugin-sample.pdf'
+
+# Ask user for search type
+search_choice = input("Choose search option - Type 'table' to search for tables or 'text' to search for text: ").strip().lower()
+
+if search_choice not in ['table', 'text']:
+    print("Invalid choice! Please enter 'table' or 'text'.")
+else:
+    heading = input("Enter the heading to search for: ").strip()
+
+    if search_choice == 'table':
+        tables_data = extract_tables_after_heading(pdf_path, heading)
+        if tables_data:
+            print(f"\nExtracted Tables for heading '{heading}':")
+            for idx, table in enumerate(tables_data):
+                print(f"\n--- Table {idx + 1} ---")
+                for row in table:
+                    filtered_row = [cell for cell in row if cell is not None and cell != '']
+                    if filtered_row:
+                        print(filtered_row)
+                print("\n--- End of Table ---")
+            
+            # Format and export to Excel
+            format_and_export_tables_to_excel(tables_data, heading)
+            print(f"\nTables exported to '{heading}_extracted_tables.xlsx'")
+        else:
+            print(f"\n{heading}: Table not found.")
+
+    elif search_choice == 'text':
+        text_content = extract_text_between_headings(pdf_path, heading)
+        if text_content:
+            print(f"\nExtracted Text for heading '{heading}':")
+            for line in text_content:
+                print(line)
+            # Optionally, save the text content to a file
+            with open(f"{heading}_extracted_text.txt", 'w') as text_file:
+                text_file.write("\n".join(text_content))
+            print(f"\nText content exported to '{heading}_extracted_text.txt'")
+        else:
+            print(f"\n{heading}: Text not found.")
