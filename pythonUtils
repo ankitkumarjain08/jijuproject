@@ -51,3 +51,86 @@ if pdf_text:
     print(pdf_text)
 else:
     print("Failed to read PDF.")
+
+-------------------------------------------------------------------------------------------------------------------------
+
+import pdfplumber
+
+def extract_continuing_table_after_heading(pdf_path, heading_text):
+    with pdfplumber.open(pdf_path) as pdf:
+        tables = []
+        heading_found = False
+
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text is None:
+                continue
+
+            lines = text.split('\n')
+
+            if not heading_found:
+                for line in lines:
+                    if heading_text.lower() in line.lower():
+                        heading_found = True
+                        break
+
+            if heading_found:
+                current_tables = page.extract_tables()
+
+                if current_tables:
+                    for table in current_tables:
+                        combined_table = []
+                        current_header = None
+                        for row in table:
+                            if any(cell is not None and cell != '' for cell in row):
+                                if current_header is None:
+                                    current_header = [cell for cell in row if cell is not None and cell != '']
+                                else:
+                                    if len(row) > 1 and all(cell is None or cell == '' for cell in current_header[1:]):
+                                        current_header.append(row[0])
+                                    else:
+                                        combined_table.append(current_header)
+                                        current_header = [cell for cell in row if cell is not None and cell != '']
+                            else:
+                                if current_header is not None:
+                                    combined_table.append(current_header)
+                                    current_header = None
+
+                        if current_header:
+                            combined_table.append(current_header)
+
+                        filtered_table = [row for row in combined_table if any(cell for cell in row)]
+
+                        if filtered_table:
+                            tables.append(filtered_table)
+
+                if tables and current_tables:
+                    last_row = tables[-1][-1]
+                    first_row_of_next_table = current_tables[0][0] if current_tables else None
+
+                    if first_row_of_next_table and last_row and first_row_of_next_table[0] == last_row[0]:
+                        tables[-1].extend(current_tables[0])
+
+        return tables
+
+pdf_path = '/content/depositary-receipts-opportunity-product-paper.pdf'
+
+example_headings = [
+    "User Interface",
+    "API"
+]
+
+for heading in example_headings:
+    tables_data = extract_continuing_table_after_heading(pdf_path, heading)
+    if tables_data:
+        print(f"\nExtracted Tables for heading '{heading}':")
+        for idx, table in enumerate(tables_data):
+            print(f"\n--- Table {idx + 1} ---")
+            for row in table:
+                filtered_row = [cell for cell in row if cell is not None and cell != '']
+                if filtered_row:
+                    print(filtered_row)
+            print("\n--- End of Table ---")
+    else:
+        print(f"\n{heading}: Table not found.")
+
