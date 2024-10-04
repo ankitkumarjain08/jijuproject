@@ -318,5 +318,116 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     pdf_read_ops()
+--------------------------------------------------------------------------------------------------------------------------
+
+import json
+import csv
+import fitz  # PyMuPDF for handling PDF
+
+
+def extract_text_from_bbox(doc, page_number, bbox):
+    page = doc[page_number]
+    text = page.get_textbox(bbox)
+    print(f"Extracted text from bbox {bbox}: {text}")
+    return text
+
+
+def extract_field_text(json_data, field, doc, page_number):
+    extracted_data = set()
+    flag = False
+    bbox = None
+
+    for block in json_data['blocks']:
+        if 'lines' not in block:
+            print(f"Skipping block without 'lines': {block}")
+            continue
+
+        for line in block['lines']:
+            for span in line['spans']:
+                text = span['text'].strip()
+                print(f"Processing text: {text}")
+
+                if field in text and not flag:
+                    bbox = block['bbox']
+                    print(f"Field '{field}' found. BBox: {bbox}")
+                    flag = True
+
+                elif flag:
+                    extracted_text = extract_text_from_bbox(doc, page_number, bbox)
+                    extracted_text = extracted_text.replace('\n', ' ')
+                    extracted_data.add(extracted_text.strip())
+                    flag = False
+                    break
+
+    if not extracted_data:
+        print(f"No data extracted for field '{field}'")
+
+    return list(extracted_data)
+
+
+def process_pdf(pdf_path, field=None):
+    try:
+        doc = fitz.open(pdf_path)
+        extracted_data = {}
+
+        for page_number in range(len(doc)):
+            page = doc[page_number]
+            json_data = json.loads(page.get_text("json"))
+            print(f"Extracted JSON from page {page_number + 1}")
+
+            extracted_field_text = extract_field_text(json_data, field, doc, page_number)
+            if extracted_field_text:
+                extracted_data[f"Page {page_number + 1}"] = extracted_field_text
+
+        return {field: extracted_data} if extracted_data else None
+
+    except Exception as e:
+        print(f"Error processing PDF: {e}")
+        return None
+
+
+def write_to_file(output_format, output_path, extracted_data):
+    try:
+        if not extracted_data:
+            print("No data to write!")
+            return
+
+        if output_format.upper() == "CSV":
+            with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.DictWriter(file, fieldnames=extracted_data[0].keys())
+                writer.writeheader()
+                writer.writerows(extracted_data)
+            print(f"Data successfully written to CSV: {output_path}")
+
+        elif output_format.upper() == "JSON":
+            with open(output_path, mode='w', encoding='utf-8') as file:
+                json.dump(extracted_data, file, indent=4, ensure_ascii=False)
+            print(f"Data successfully written to JSON: {output_path}")
+
+    except Exception as e:
+        print(f"Error writing file: {e}")
+
+
+def pdf_read_ops(pdf_path, output_path, output_format="JSON"):
+    fields_to_extract = {
+        'Sales': [1, 'Text'],
+        'Los Angeles:': [2, 'Text']
+    }
+
+    output_list = []
+    for field in fields_to_extract.keys():
+        print(f"Processing field: {field}")
+        data = process_pdf(pdf_path, field=field)
+        if data:
+            output_list.append(data)
+        print(f"Extracted data: {data}")
+
+    write_to_file(output_format, output_path, output_list)
+
+
+if __name__ == "__main__":
+    pdf_path = "C:/Users/Admin/Downloads/drylab.pdf"
+    output_path = "C:/Users/Admin/Downloads/file.json"
+    pdf_read_ops(pdf_path, output_path, output_format="JSON")
 
 
