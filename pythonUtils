@@ -225,5 +225,19 @@ REM Zip the Archive_Reports directory using PowerShell
 set "zip_path=..\nextgen-python\Archive_Reports.zip"
 powershell -command "if (Test-Path '%zip_path%') { Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::Open('%zip_path%', 'Update').CreateEntryFromFile('%report_folder%', 'AutomationReport_%timestamp%'); } else { Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory('%report_folder%', '%zip_path%'); }"
 
+------------------------------------------------------------------------------------------
 
+REM Zip the Archive_Reports directory using tar
+set "zip_path=..\nextgen-python\Archive_Reports.zip"
+
+REM Check if the zip file already exists
+if exist "%zip_path%" (
+    REM If the zip file exists, append the new folder to the existing zip
+    tar -uf "%zip_path%" -C "..\nextgen-python\Archive_Reports" "AutomationReport_%timestamp%"
+) else (
+    REM If the zip file does not exist, create a new zip file
+    tar -cf "%zip_path%" -C "..\nextgen-python\Archive_Reports" "AutomationReport_%timestamp%"
+)
+
+echo Files moved and added to %zip_path% successfully.
 
