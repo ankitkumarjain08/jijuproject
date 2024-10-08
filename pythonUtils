@@ -185,4 +185,38 @@ def generate_alphanumeric_string(length):
 # Example usage:
 alphanumeric_string = generate_alphanumeric_string(10)
 print(alphanumeric_string)
+--------------------------------------------------------------------------------------------------------------------
+import os
+import shutil
+import zipfile
+from datetime import datetime
+
+# Get the current time (hour and minute)
+now = datetime.now()
+timestamp = now.strftime("%Y-%m-%d_%H-%M")
+report_folder = f"../nextgen-python/Archive_Reports/AutomationReport_{timestamp}"
+
+# Create the folder with today's date and time
+os.makedirs(report_folder, exist_ok=True)
+
+# Move files from the Results folder to the newly created folder
+results_folder = "../nextgen-python/Results"
+for item in os.listdir(results_folder):
+    item_path = os.path.join(results_folder, item)
+    destination = os.path.join(report_folder, item)
+    if os.path.isfile(item_path):
+        shutil.move(item_path, destination)
+    elif os.path.isdir(item_path):
+        shutil.move(item_path, destination)
+
+# Append the new folder to Archive_Reports.zip
+zip_path = "../nextgen-python/Archive_Reports.zip"
+with zipfile.ZipFile(zip_path, 'a', zipfile.ZIP_DEFLATED) as archive:
+    for root, _, files in os.walk(report_folder):
+        for file in files:
+            file_path = os.path.join(root, file)
+            archive.write(file_path, os.path.relpath(file_path, os.path.dirname(report_folder)))
+
+print(f"Files moved and added to {zip_path} successfully.")
+
 
