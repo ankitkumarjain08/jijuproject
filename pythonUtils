@@ -246,3 +246,24 @@ set "zip_path=..\nextgen-python\Archive_Reports.zip"
 
 echo Files moved and added to %zip_path% successfully.
 
+---------------------------------------
+
+"C:\Program Files\7-Zip\7z.exe" u "..\nextgen-python\Archive_Reports.zip" "..\nextgen-python\Archive_Reports\*"
+
+
+-----------------------------------------
+
+for /f "tokens=2 delims==" %%a in ('wmic os get localdatetime ^| find "."') do (
+    set "datetime=%%a"
+    set "year=!datetime:~0,4!"
+    set "month=!datetime:~4,2!"
+    set "day=!datetime:~6,2!"
+)
+
+REM Get the current time (hour, minute) using wmic
+set "hour=!datetime:~8,2!"
+set "minute=!datetime:~10,2!"
+
+REM Create a timestamp and the report folder
+set "timestamp=!year!-!month!-!day!_!hour!-!minute!"
+
