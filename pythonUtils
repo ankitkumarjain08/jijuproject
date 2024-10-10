@@ -239,5 +239,10 @@ if exist "%zip_path%" (
     tar -cf "%zip_path%" -C "..\nextgen-python\Archive_Reports" "AutomationReport_%timestamp%"
 )
 
+REM Append the new folder to Archive_Reports.zip using 7z
+REM Ensure 7z is installed and the path is added to the system PATH environment variable
+set "zip_path=..\nextgen-python\Archive_Reports.zip"
+7z a -tzip "%zip_path%" "%report_folder%\*" -r
+
 echo Files moved and added to %zip_path% successfully.
 
