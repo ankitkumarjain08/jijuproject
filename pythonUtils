@@ -267,3 +267,26 @@ set "minute=!datetime:~10,2!"
 REM Create a timestamp and the report folder
 set "timestamp=!year!-!month!-!day!_!hour!-!minute!"
 
+---------------------------------------------------------------------------------------
+
+rowindex = int(rowindex)
+
+    # Load the workbook and access the specified sheet
+    wb = openpyxl.load_workbook(path)
+    ws = wb[sheetname]  # Access the sheet by name
+    
+    # Get the headers from the first row
+    headers = [cell.value for cell in ws[1]]  # Read the first row
+
+    # Check if the columnName exists in the headers
+    if columnName not in headers:
+        raise ValueError(f"Column header '{columnName}' not found in the headers.")
+
+    # Find the index of the specified column header and adjust to 1-indexed
+    columnindex = headers.index(columnName) + 1
+
+    # Access the cell using the specified row index and the found column index
+    cell_obj = ws.cell(row=rowindex + 1, column=columnindex)
+    
+    return cell_obj.value
+
