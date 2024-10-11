@@ -289,4 +289,18 @@ rowindex = int(rowindex)
     cell_obj = ws.cell(row=rowindex + 1, column=columnindex)
     
     return cell_obj.value
+---------------------------------------------------------
+if __name__ == "__main__":
+    # Define the path to the Excel file and the sheet name
+    path = "test_data.xlsx"  # Replace with the actual path to your Excel file
+    sheetname = "Sheet1"  # Replace with the actual sheet name in your Excel file
+    rowindex = 2  # Specify the row number (1-indexed)
+    columnName = "Name"  # Replace with the column header name
+
+    # Call the function and print the value
+    try:
+        value = read_cell_value_by_header(path, sheetname, rowindex, columnName)
+        print(f"The value in row {rowindex} under the '{columnName}' column is: {value}")
+    except ValueError as e:
+        print(f"Error: {e}")
 
