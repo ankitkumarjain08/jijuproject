@@ -304,3 +304,60 @@ if __name__ == "__main__":
     except ValueError as e:
         print(f"Error: {e}")
 
+---------------------------------------------------------------------------------------------------------------
+
+import os
+import subprocess
+from datetime import datetime
+import shutil
+import time
+
+# Set the paths
+result_path = r"..\RobotPython\Result"
+zip_path = r"..\RobotPython\Archive_Reports.zip"
+archive_reports_path = r"..\RobotPython\Archive_Reports"
+
+# Get the current date and time
+now = datetime.now()
+timestamp = now.strftime("%Y_%m_%d_%H_%M")
+
+# Create a folder with today's date and time
+report_folder = os.path.join(archive_reports_path, f"AutomationReport_{timestamp}")
+os.makedirs(report_folder, exist_ok=True)
+
+# Move files from the Results folder to the newly created folder
+if os.path.exists(result_path):
+    for item in os.listdir(result_path):
+        source = os.path.join(result_path, item)
+        destination = os.path.join(report_folder, item)
+        try:
+            if os.path.isfile(source):
+                shutil.move(source, destination)
+                print(f"Moved file: {source} to {destination}")
+            elif os.path.isdir(source):
+                shutil.move(source, destination)
+                print(f"Moved directory: {source} to {destination}")
+        except Exception as e:
+            print(f"Failed to move {source}. Error: {e}")
+
+# Wait for 2 seconds
+time.sleep(2)
+
+# Check if the zip file already exists and create or update the zip file
+try:
+    if os.path.exists(zip_path):
+        # If the zip file exists, append the new folder to the existing zip
+        print("Appending to existing zip...")
+        subprocess.run(["7z", "a", zip_path, report_folder], check=True)
+    else:
+        # If the zip file does not exist, create a new zip file
+        print("Creating new zip...")
+        subprocess.run(["7z", "a", zip_path, report_folder], check=True)
+
+    print(f"Files moved successfully to Archive Result folder!")
+    print(f"Archive created at {zip_path}")
+
+except subprocess.CalledProcessError as e:
+    print(f"Failed to create or update the zip. Error: {e}")
+
+
