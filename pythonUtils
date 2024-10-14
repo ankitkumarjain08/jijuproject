@@ -473,6 +473,70 @@ class RunBatFileListener:
             logger.info("Batch file executed successfully.")
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to execute batch file. Error: {e}")
+-----------------------------------------------------------------------------------
+import os
+import subprocess
+from datetime import datetime
+import shutil
+import time
+from robot.api import logger
+
+class RunArchiveListener:
+    ROBOT_LISTENER_API_VERSION = 2
+
+    def __init__(self):
+        # Set the paths
+        self.result_path = r"..\RobotPython\Result"
+        self.zip_path = r"..\RobotPython\Archive_Reports.zip"
+        self.archive_reports_path = r"..\RobotPython\Archive_Reports"
+
+    def close(self):
+        """This method is called after all tests are executed."""
+        logger.info("Starting the process to archive test results.")
+        
+        # Get the current date and time
+        now = datetime.now()
+        timestamp = now.strftime("%Y_%m_%d_%H_%M")
+
+        # Create a folder with today's date and time
+        report_folder = os.path.join(self.archive_reports_path, f"AutomationReport_{timestamp}")
+        os.makedirs(report_folder, exist_ok=True)
+
+        # Move files from the Results folder to the newly created folder
+        if os.path.exists(self.result_path):
+            for item in os.listdir(self.result_path):
+                source = os.path.join(self.result_path, item)
+                destination = os.path.join(report_folder, item)
+                try:
+                    if os.path.isfile(source):
+                        shutil.move(source, destination)
+                        logger.info(f"Moved file: {source} to {destination}")
+                    elif os.path.isdir(source):
+                        shutil.move(source, destination)
+                        logger.info(f"Moved directory: {source} to {destination}")
+                except Exception as e:
+                    logger.error(f"Failed to move {source}. Error: {e}")
+
+        # Wait for 2 seconds
+        time.sleep(2)
+
+        # Check if the zip file already exists and create or update the zip file
+        try:
+            if os.path.exists(self.zip_path):
+                # If the zip file exists, append the new folder to the existing zip
+                logger.info("Appending to existing zip...")
+                subprocess.run(["7z", "a", self.zip_path, report_folder], check=True)
+            else:
+                # If the zip file does not exist, create a new zip file
+                logger.info("Creating new zip...")
+                subprocess.run(["7z", "a", self.zip_path, report_folder], check=True)
+
+            logger.info(f"Files moved successfully to Archive Result folder!")
+            logger.info(f"Archive created at {self.zip_path}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to create or update the zip. Error: {e}")
+
 
 
 
