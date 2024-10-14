@@ -430,6 +430,29 @@ if __name__ == "__main__":
     result = mover.runFile(batch_file_path)
     print(result)  # This will print "move files"
 
+-----------------------------------------------
+import subprocess
+
+def run_batch_file(batch_file_path):
+    """
+    Run a batch file using subprocess.
+
+    :param batch_file_path: The path to the batch file to execute.
+    :return: None
+    """
+    try:
+        # Run the batch file
+        result = subprocess.run(batch_file_path, check=True, shell=True)
+        print("Batch file executed successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing batch file: {e}")
+
+if __name__ == "__main__":
+    # Specify the path to your batch file
+    batch_file_path = r"path_to_your_batch_file.bat"  # Update with your actual batch file path
+    
+    # Call the function to execute the batch file
+    run_batch_file(batch_file_path)
 
 
 
