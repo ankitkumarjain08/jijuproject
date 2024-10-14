@@ -378,6 +378,28 @@ def end_execution(data, result: ExecutionResult):
     batch_file_path = "path_to_your_batch_file.bat"
     result.visit(RunBatchAfterSuite(batch_file_path))
 
+----------------------------------------------------------------------------------------------------
+from robot.api import ExecutionResult, ResultVisitor
+import os
+
+class RunBatchAfterSuite(ResultVisitor):
+    def __init__(self, batch_file_path):
+        self.batch_file_path = batch_file_path
+
+    def visit_suite(self, suite):
+        if suite.status in ['PASS', 'FAIL']:
+            # Run the batch file after suite execution is complete
+            exit_code = os.system(self.batch_file_path)
+            if exit_code == 0:
+                print("Batch file executed successfully.")
+            else:
+                print(f"Batch file execution failed with exit code: {exit_code}")
+
+def end_execution(data, result: ExecutionResult):
+    # Replace with the path to your batch file
+    batch_file_path = r"C:\path\to\your\batch_file.bat"
+    result.visit(RunBatchAfterSuite(batch_file_path))
+
 
 
 
