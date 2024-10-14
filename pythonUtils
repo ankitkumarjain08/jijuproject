@@ -400,6 +400,35 @@ class CustomListener:
         # Specify the path to your batch file
         batch_file_path = r"path_to_your_batch_file.bat"
         self.file_mover.runFile(batch_file_path)
+------------------------------------------------------------------------------
+from robot.api.deco import keyword
+import os
+
+class FileMoverWithListener:
+    ROBOT_LISTENER_API_VERSION = 2
+
+    def __init__(self):
+        pass
+
+    @keyword('runMovetoBatFile')
+    def runFile(self, filepath):
+        os.system(filepath)
+        return "move files"
+
+    def close(self):
+        # Specify the path to your batch file
+        batch_file_path = r"path_to_your_batch_file.bat"
+        self.runFile(batch_file_path)
+
+# Example of calling the method directly in Python
+if __name__ == "__main__":
+    # Create an instance of the FileMoverWithListener class
+    mover = FileMoverWithListener()
+
+    # Call the runMovetoBatFile method directly
+    batch_file_path = r"path_to_your_batch_file.bat"  # Update with your actual batch file path
+    result = mover.runFile(batch_file_path)
+    print(result)  # This will print "move files"
 
 
 
