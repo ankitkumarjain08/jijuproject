@@ -379,26 +379,27 @@ def end_execution(data, result: ExecutionResult):
     result.visit(RunBatchAfterSuite(batch_file_path))
 
 ----------------------------------------------------------------------------------------------------
-from robot.api import ExecutionResult, ResultVisitor
+from robot.api.deco import keyword
 import os
+import subprocess
 
-class RunBatchAfterSuite(ResultVisitor):
-    def __init__(self, batch_file_path):
-        self.batch_file_path = batch_file_path
+class FileMover:
+    
+    @keyword('runMovetoBatFile')
+    def runFile(self, filepath):
+        os.system(filepath)
+        return "move files"
 
-    def visit_suite(self, suite):
-        if suite.status in ['PASS', 'FAIL']:
-            # Run the batch file after suite execution is complete
-            exit_code = os.system(self.batch_file_path)
-            if exit_code == 0:
-                print("Batch file executed successfully.")
-            else:
-                print(f"Batch file execution failed with exit code: {exit_code}")
+class CustomListener:
+    ROBOT_LISTENER_API_VERSION = 2
 
-def end_execution(data, result: ExecutionResult):
-    # Replace with the path to your batch file
-    batch_file_path = r"C:\path\to\your\batch_file.bat"
-    result.visit(RunBatchAfterSuite(batch_file_path))
+    def __init__(self):
+        self.file_mover = FileMover()
+
+    def close(self):
+        # Specify the path to your batch file
+        batch_file_path = r"path_to_your_batch_file.bat"
+        self.file_mover.runFile(batch_file_path)
 
 
 
