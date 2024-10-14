@@ -456,19 +456,25 @@ if __name__ == "__main__":
 
 ---------------------------------------------------------------------------------------
 
-from robot.api import logger
 import subprocess
+from robot.api import logger
 
-class RunRobotTests:
-
+class RunBatFileListener:
     ROBOT_LISTENER_API_VERSION = 2
 
     def __init__(self):
-        self.run_test_file = "path/to/your/test_file.robot"  # Specify your Robot test file here
+        self.bat_file_path = 'path_to_your_bat_file.bat'  # Update this with the actual path to your batch file
 
-    def suite_teardown(self, name, time):
-        logger.info(f"Running additional Robot tests after suite teardown: {self.run_test_file}")
-        subprocess.run(["robot", self.run_test_file], check=True)
+    def close(self):
+        """This method is called after all tests are executed."""
+        logger.info("Running batch file after test execution.")
+        try:
+            subprocess.run([self.bat_file_path], check=True)
+            logger.info("Batch file executed successfully.")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to execute batch file. Error: {e}")
+
+
 
 
 
