@@ -359,5 +359,26 @@ try:
 
 except subprocess.CalledProcessError as e:
     print(f"Failed to create or update the zip. Error: {e}")
+--------------------------------------------------------------------------------------------------------------------
+
+from robot.api import ExecutionResult, ResultVisitor
+import subprocess
+
+class RunBatchAfterSuite(ResultVisitor):
+    def __init__(self, batch_file_path):
+        self.batch_file_path = batch_file_path
+
+    def visit_suite(self, suite):
+        if suite.status == 'PASS' or suite.status == 'FAIL':
+            # Run the batch file after suite execution is complete
+            subprocess.call([self.batch_file_path])
+
+def end_execution(data, result: ExecutionResult):
+    # Replace with the path to your batch file
+    batch_file_path = "path_to_your_batch_file.bat"
+    result.visit(RunBatchAfterSuite(batch_file_path))
+
+
+
 
 
