@@ -536,6 +536,27 @@ class RunArchiveListener:
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create or update the zip. Error: {e}")
+--------------------------------------------------------------------------------
+
+@echo off
+REM Get the current script's directory
+set script_dir=%~dp0
+
+REM Remove the trailing backslash (if any)
+set script_dir=%script_dir:~0,-1%
+
+REM Go up one level from the current script directory
+for %%a in ("%script_dir%") do set project_root=%%~dpa..
+
+REM Construct the result path using the project root with "Results"
+set result_path=%project_root%\Results
+
+REM Print the paths
+echo Project root: %project_root%
+echo Result path: %result_path%
+
+pause
+
 
 
 
