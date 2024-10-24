@@ -556,6 +556,28 @@ echo Project root: %project_root%
 echo Result path: %result_path%
 
 pause
+------------------------------------------------
+
+import os
+import shutil
+
+result_path = r"..\RobotPython\Result"
+
+def start_suite():
+    # Check if the Results folder exists
+    if os.path.exists(result_path):
+        # Loop through all files and directories in the Results folder
+        for item in os.listdir(result_path):
+            item_path = os.path.join(result_path, item)
+            try:
+                if os.path.isfile(item_path):
+                    os.remove(item_path)  # Remove the file
+                    print(f"Removed file: {item_path}")
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)  # Remove the directory and its contents
+                    print(f"Removed directory: {item_path}")
+            except Exception as e:
+                print(f"Failed to delete {item_path}. Error: {e}")
 
 
 
