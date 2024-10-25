@@ -159,3 +159,4 @@ The framework supports a hierarchical structure for organizing test cases, which
 Integration with External Tools
 
 Robot Framework can be easily integrated with various external tools and services, such as version control systems and reporting tools, enhancing its scalability and adaptability in diverse testing environments.
+Run Keyword If    Path Exists    ${path}    Remove Directory    ${path}    recurse=True
