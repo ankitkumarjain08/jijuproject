@@ -48,3 +48,51 @@ if __name__ == "__main__":
     for row in unmatched_values:
         print(row)
     print("Total Unmatched Count", len(unmatched_values))
+-----------------------------------------------------------------------------------------------------------------------
+import pandas as pd
+
+# Load the Excel file once and store each sheet's data in a dictionary
+excel_path = "/mnt/data/testData.xlsx"
+excel_data = pd.read_excel(excel_path, sheet_name=None)  # Load all sheets at once
+
+def get_data(scenario_name, sheetname, column_name):
+    # Access the specified sheet and convert to a dictionary
+    if sheetname in excel_data:
+        reader = excel_data[sheetname].to_dict()
+    else:
+        raise ValueError(f"Sheet '{sheetname}' not found in the Excel file.")
+
+    # Get the count of TestDataID keys
+    scenarios_in_datasheet = len(reader['TestDataID'].keys())
+    
+    # Loop through scenarios in the data sheet
+    for i in range(scenarios_in_datasheet):
+        # Check if the TestDataID matches the scenario_name
+        if str(reader['TestDataID'].get(i)).lstrip() in scenario_name.split('*-*')[0].strip():
+            # Return the value from the specified column
+            return reader.get(column_name, {}).get(i)
+    
+    # If no match is found, return None or raise an exception
+    return None
+--------------------------------------------------------------------------------------------------------------
+import pandas as pd
+
+def get_data(scenario_name, path, sheetname, column_name):
+    # Read the Excel file and convert to a dictionary
+    reader = pd.read_excel(path, sheet_name=sheetname).to_dict()
+    
+    # Get the count of TestDataID keys
+    scenarios_in_datasheet = len(reader['TestDataID'].keys())
+    
+    # Loop through scenarios in the data sheet
+    for i in range(scenarios_in_datasheet):
+        # Check if the TestDataID matches the scenario_name
+        if str(reader['TestDataID'].get(i)).lstrip() in scenario_name.split('*-*')[0].strip():
+            # Return the value from the specified column
+            return reader.get(column_name, {}).get(i)
+
+    # If no match is found, return None or raise an exception
+    return None
+
+
+
