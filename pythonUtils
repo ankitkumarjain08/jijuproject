@@ -579,6 +579,36 @@ def start_suite():
             except Exception as e:
                 print(f"Failed to delete {item_path}. Error: {e}")
 
+------------------------------------------------------------------------------------------------------------------------
+import pandas as pd
+
+class DataReader:
+    def __init__(self):
+        self.datamap = {}
+        self.index = None
+
+    def get_data(self, scenario_name, path, sheetname, target_column):
+        # Read Excel sheet into a dictionary
+        reader = pd.read_excel(path, sheet_name=sheetname).to_dict()
+        
+        # Get the number of scenarios in the datasheet
+        scenarios_in_datasheet = len(reader['TestDataID'].keys())
+        
+        for i in range(scenarios_in_datasheet):
+            # Check if the scenario matches the entry in the Excel sheet
+            if str(reader['TestDataID'].get(i)).strip() in scenario_name.split('*-*')[0].strip():
+                # Store data globally for access
+                self.datamap = reader
+                self.index = i
+                break
+
+        # If index is set, return the requested column value; otherwise, return None
+        return self.datamap.get(target_column, {}).get(self.index)
+
+    def get_data_map(self):
+        return self.datamap
+
+
 
 
 
