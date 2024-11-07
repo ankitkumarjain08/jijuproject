@@ -608,6 +608,30 @@ class DataReader:
     def get_data_map(self):
         return self.datamap
 
+----------------------------------------------------------------------------------------------------------------------
+
+import pandas as pd
+
+class DataReader:
+    def __init__(self):
+        self.data_list = []
+
+    def get_excel_data(self, scenario_name, path, sheetname, target_columns):
+        # Load the sheet into a DataFrame
+        df = pd.read_excel(path, sheet_name=sheetname)
+        
+        # Filter rows where 'TestDataID' matches the scenario_name
+        matched_rows = df[df['TestDataID'].str.strip() == scenario_name.strip()]
+        
+        # Extract values for each occurrence of TestDataID
+        for _, row in matched_rows.iterrows():
+            data = {col: row[col] for col in target_columns if col in row}
+            self.data_list.append(data)
+        
+        return self.data_list
+
+    def get_data_list(self):
+        return self.data_list
 
 
 
