@@ -632,6 +632,46 @@ class DataReader:
 
     def get_data_list(self):
         return self.data_list
+---------------------------------------------------------------------------------------------------------------------------
+
+from Crypto.Cipher import DES3
+from Crypto.Util.Padding import unpad
+import base64
+
+# Constants
+ENCRYPTION_KEY = "WelcomeToBYNMNextGenFramework"  # Must be 24 bytes for DES3
+
+
+def decrypt_password(encrypted_string):
+    """
+    Decrypts an encrypted password using the DES3 algorithm.
+    
+    :param encrypted_string: The base64 encoded encrypted password.
+    :return: The decrypted password as a string.
+    """
+    try:
+        # Ensure the encryption key is exactly 24 bytes (padding or truncating if needed)
+        encryption_key = ENCRYPTION_KEY.encode('utf-8')[:24]
+        cipher = DES3.new(encryption_key, DES3.MODE_ECB)
+        
+        # Decode the encrypted string and decrypt it
+        encrypted_bytes = base64.b64decode(encrypted_string)
+        plain_text = unpad(cipher.decrypt(encrypted_bytes), DES3.block_size)
+        return plain_text.decode('utf-8')
+    except Exception as e:
+        print(f"Error during decryption: {e}")
+        return None
+
+
+# Example Usage
+if __name__ == "__main__":
+    encrypted_password = "ENCRYPTED_STRING_HERE"  # Replace with your encrypted password
+    decrypted_password = decrypt_password(encrypted_password)
+    
+    if decrypted_password:
+        print(f"Decrypted Password: {decrypted_password}")
+    else:
+        print("Failed to decrypt the password.")
 
 
 
